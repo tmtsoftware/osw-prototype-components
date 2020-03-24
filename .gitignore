@@ -1,0 +1,8 @@
+# Created by .ignore support plugin (hsz.mobi)
+/scripts/coursier
+project/project/target
+project/project
+project/target
+target
+.idea
+*.iml
