@@ -62,15 +62,6 @@ object ControllerActor {
       case ExposureInProgress(replyTo) =>
         val elapsedTime = System.currentTimeMillis() - data.exposureStartTime
         data.logger.debug(s"Exposure In Progress: elapsed time = $elapsedTime ms.  total time = ${calculateExposureDurationMillis(data.exposureParameters)}")
-        if (elapsedTime < calculateExposureDurationMillis(data.exposureParameters))
-          Behaviors.withTimers[ControllerMessage] { timers =>
-            timers.startSingleTimer(ExposureInProgress(replyTo), exposureTimerPeriod)
-            Behaviors.same
-          } else {
-
-          Behaviors.same
-        }
-          /*
         val (nextState, time) = if (elapsedTime > calculateExposureDurationMillis(data.exposureParameters))
           (ExposureComplete(replyTo), 0.seconds)
         else
@@ -79,7 +70,6 @@ object ControllerActor {
           timers.startSingleTimer(nextState, time)
           exposing(data.copy(Exposing))
         }
-        */
     }
   }
 
