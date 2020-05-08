@@ -20,6 +20,11 @@ object AkkaHttp {
   val `akka-http-spray-json` = "com.typesafe.akka" %% "akka-http-spray-json" % Version
 }
 
+object Akka {
+  val Version = "2.6.3"
+  val `actor-testkit-typed` = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version
+}
+
 object CSW {
 
   // If you want to change CSW version, then update "csw.version" property in "build.properties" file
