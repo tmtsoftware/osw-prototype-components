@@ -38,16 +38,18 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
   lazy private val config = ConfigFactory.load()
 
+  private val dumpLogs = false
+
   override def beforeAll(): Unit = {
     super.beforeAll()
     loggingSystem.setAppenders(List(testAppender))
   }
 
   override def afterAll(): Unit = {
-    Thread.sleep(1000)
-    println("log buffer:")
-    logBuffer.foreach(println)
-    println("log buffer end")
+    if (dumpLogs) {
+      Thread.sleep(1000)
+      logBuffer.foreach(println)
+    }
     actorSystem.terminate()
   }
 
