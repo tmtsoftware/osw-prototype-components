@@ -18,7 +18,6 @@ object ControllerActor {
   }
 
   private def uninitialized(data: ControllerData): Behavior[ControllerMessage] = {
-    println("uninitialized")
     data.logger.info("In uninitialized state")
     Behaviors.receiveMessagePartial[ControllerMessage] {
       case Initialize(replyTo) =>
@@ -28,7 +27,6 @@ object ControllerActor {
   }
 
   private def idle(data: ControllerData): Behavior[ControllerMessage] = {
-    println("idle")
     data.logger.info("In idle state")
     Behaviors.receiveMessagePartial[ControllerMessage] {
       case c: ConfigureExposure =>
@@ -44,8 +42,6 @@ object ControllerActor {
   }
 
   private def exposing(data: ControllerData): Behavior[ControllerMessage] = {
-    println("exposing")
-    data.logger.info("In exposing state")
     Behaviors.receiveMessagePartial {
       case AbortExposure(replyTo) =>
         data.logger.info("Exposure Aborted")
@@ -82,10 +78,11 @@ object ControllerActor {
   }
 
   private def writeData(logger: Logger, filename: String): Unit = {
-    logger.info(s"writing data.  Image dimensions = $detectorDimensions")
+    logger.info(s"Writing data.  Image dimensions = $detectorDimensions")
   }
 
   private def startExposure(data: ControllerData, replyTo: ActorRef[ControllerResponse]) = {
+    data.logger.info(s"Starting exposure.  Itime = ${data.exposureParameters.integrationTimeMillis} ms, Coadds = ${data.exposureParameters.coadds}")
     Behaviors.withTimers[ControllerMessage] { timers =>
       timers.startSingleTimer(ExposureInProgress(replyTo), exposureTimerPeriod)
       exposing(data.copy(Exposing, newExposureStartTime = System.currentTimeMillis()))
