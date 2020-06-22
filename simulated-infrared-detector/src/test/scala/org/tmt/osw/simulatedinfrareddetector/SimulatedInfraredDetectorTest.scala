@@ -1,29 +1,102 @@
 package org.tmt.osw.simulatedinfrareddetector
 
+import akka.actor.typed.{ActorSystem, SpawnProtocol}
+import akka.util.Timeout
+import csw.command.client.CommandServiceFactory
+import csw.command.client.extensions.AkkaLocationExt.RichAkkaLocation
+import csw.command.client.messages.SupervisorContainerCommonMessages.Restart
 import csw.location.api.models.Connection.AkkaConnection
-import csw.prefix.models.Prefix
 import csw.location.api.models.{ComponentId, ComponentType}
+import csw.params.commands.CommandIssue.UnsupportedCommandIssue
+import csw.params.commands.CommandResponse.{Completed, Invalid}
+import csw.params.commands.Setup
+import csw.prefix.models.{Prefix, Subsystem}
 import csw.testkit.scaladsl.CSWService.{AlarmServer, EventServer}
 import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
-import org.scalatest.funsuite.AnyFunSuiteLike
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
-class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyFunSuiteLike {
+class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyWordSpecLike with BeforeAndAfterEach {
 
+  import AssemblyConstants._
   import frameworkTestKit.frameworkWiring._
+
+  private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
+  private implicit val ec: ExecutionContext                            = actorSystem.executionContext
+  private implicit val timeout: Timeout                                = 12.seconds
+
+
+  private val testPrefix = Prefix(Subsystem.CSW, "test")
+  private val assemblyPrefix = Prefix(Subsystem.CSW, "simulated.Infrared.Detector")
+  private val assemblyConnection = AkkaConnection(ComponentId(assemblyPrefix, ComponentType.Assembly)
+  )
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    // uncomment if you want one Assembly run for all tests
+    // one Assembly run for all tests
     spawnStandalone(com.typesafe.config.ConfigFactory.load("SimulatedInfraredDetectorStandalone.conf"))
   }
 
-  test("Assembly should be locatable using Location Service") {
-    val connection = AkkaConnection(ComponentId(Prefix("OSW.simulated.Infrared.Detector"), ComponentType.Assembly))
-    val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
+  override def afterEach(): Unit = {
+    val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
+    val supervisor = akkaLocation.componentRef
+    supervisor ! Restart
+    Thread.sleep(1000)
+  }
 
-    akkaLocation.connection shouldBe connection
+
+  "assembly" must {
+
+    "be locatable using Location Service" in {
+      val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
+      akkaLocation.connection shouldBe assemblyConnection
+    }
+
+    "return Completed on initialize command" in {
+      val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
+      val assembly = CommandServiceFactory.make(akkaLocation)
+
+      val initializeCommand = Setup(testPrefix, commandName.initialize, None)
+
+      Await.result(assembly.submitAndWait(initializeCommand), 2.seconds) shouldBe a[Completed]
+    }
+
+    "ConfigureExposure command when uninitialized should return UnsupportedCommand" in {
+      val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
+      val assembly = CommandServiceFactory.make(akkaLocation)
+
+      val configureExposureCommand = Setup(testPrefix, commandName.configureExposure, None)
+        .add(keys.integrationTime.set(1000))
+        .add(keys.coaddition.set(2))
+
+      val result = Await.result(assembly.submitAndWait(configureExposureCommand), 2.seconds)
+      result shouldBe a[Invalid]
+      result.asInstanceOf[Invalid].issue shouldBe a[UnsupportedCommandIssue]
+    }
+  }
+
+  "return ExposureFinished on initialize, configureExposure, and startExposure commands" in {
+    val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
+    val assembly = CommandServiceFactory.make(akkaLocation)
+
+    val initializeCommand = Setup(testPrefix, commandName.initialize, None)
+
+    Await.result(assembly.submitAndWait(initializeCommand), 2.seconds) shouldBe a[Completed]
+
+    val configureExposureCommand = Setup(testPrefix, commandName.configureExposure, None)
+      .add(keys.integrationTime.set(1000))
+      .add(keys.coaddition.set(2))
+
+    Await.result(assembly.submitAndWait(configureExposureCommand), 2.seconds) shouldBe a[Completed]
+
+    val startExposureCommand = Setup(testPrefix, commandName.configureExposure, None)
+      .add(keys.filename.set("assemblyTest.fits"))
+
+    Await.result(assembly.submitAndWait(startExposureCommand), 10.seconds) shouldBe a[Completed]
+
+
   }
 }

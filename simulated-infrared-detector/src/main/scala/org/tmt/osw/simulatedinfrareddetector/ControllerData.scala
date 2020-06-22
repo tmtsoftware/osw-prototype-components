@@ -15,11 +15,10 @@ case class ControllerData(logger: Logger,
                           exposureParameters: ExposureParameters,
                           exposureStartTime: Long,
                           exposureFilename: String) {
-
-def copy(newState: ControllerState = state,
-         newParams:ExposureParameters = exposureParameters,
-         newExposureStartTime:Long = exposureStartTime,
-         newExposureFilename: String = exposureFilename): ControllerData = {
+  def copy(newState: ControllerState = state,
+           newParams: ExposureParameters = exposureParameters,
+           newExposureStartTime: Long = exposureStartTime,
+           newExposureFilename: String = exposureFilename): ControllerData = {
     ControllerData(logger, newState, newParams, newExposureStartTime, newExposureFilename)
   }
 }

@@ -1,21 +1,32 @@
 package org.tmt.osw.simulatedinfrareddetector
 
 import akka.actor.typed.ActorRef
+import csw.params.core.models.Id
 
 case object ControllerMessages {
-  sealed trait ControllerMessage
-  case class Initialize(replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
-  case class ConfigureExposure(params: ExposureParameters, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
-  case class StartExposure(filename: String, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
-  case class ExposureInProgress(replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
-  case class AbortExposure(replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
-  case class Shutdown(replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
-  case class ExposureComplete(replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
+  sealed trait ControllerMessage {
+    def runId: Id
+    def replyTo: ActorRef[ControllerResponse]
+  }
+  case class Initialize(runId: Id, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
+  case class ConfigureExposure(runId: Id, replyTo: ActorRef[ControllerResponse], params: ExposureParameters) extends ControllerMessage
+  case class StartExposure(runId: Id, replyTo: ActorRef[ControllerResponse], filename: String) extends ControllerMessage
+  case class ExposureInProgress(runId: Id, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
+  case class AbortExposure(runId: Id, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
+  case class Shutdown(runId: Id, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
+  case class ExposureComplete(runId: Id, replyTo: ActorRef[ControllerResponse]) extends ControllerMessage
 
   sealed trait ControllerResponse
-  case object OK extends ControllerResponse
-  case object ExposureStarted extends ControllerResponse
-  case object ExposureFinished extends ControllerResponse
+  case class OK(runId: Id) extends ControllerResponse
+  case class ExposureStarted(runId: Id) extends ControllerResponse
+  case class ExposureFinished(runId: Id, filename: String) extends ControllerResponse
+  case class UnsupportedCommand(runId: Id, currentState: String, message: ControllerMessage) extends ControllerResponse
+
+  sealed trait FitsMessage
+  case class WriteData(filename: String, replyTo: ActorRef[FitsResponse]) extends FitsMessage
+
+  sealed trait FitsResponse
+  case class DataWritten(filename: String) extends FitsResponse
 }
 
 
