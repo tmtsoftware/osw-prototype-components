@@ -19,11 +19,11 @@ case object ControllerMessages {
   sealed trait ControllerResponse
   case class OK(runId: Id) extends ControllerResponse
   case class ExposureStarted(runId: Id) extends ControllerResponse
-  case class ExposureFinished(runId: Id, filename: String) extends ControllerResponse
+  case class ExposureFinished(runId: Id, data: FitsData, filename: String) extends ControllerResponse
   case class UnsupportedCommand(runId: Id, currentState: String, message: ControllerMessage) extends ControllerResponse
 
   sealed trait FitsMessage
-  case class WriteData(filename: String, replyTo: ActorRef[FitsResponse]) extends FitsMessage
+  case class WriteData(filename: String, data: FitsData, replyTo: ActorRef[FitsResponse]) extends FitsMessage
 
   sealed trait FitsResponse
   case class DataWritten(filename: String) extends FitsResponse

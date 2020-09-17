@@ -45,8 +45,8 @@ class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage],
       case OK(runId) =>
         commandResponseManager.updateCommand(Completed(runId))
         Behaviors.same
-      case ExposureFinished(runId, filename) =>
-        val result = fitsActor.ask[FitsResponse](WriteData(filename, _))(fitsWriteTimeout, scheduler)
+      case ExposureFinished(runId, data, filename) =>
+        val result = fitsActor.ask[FitsResponse](WriteData(filename, data, _))(fitsWriteTimeout, scheduler)
         result.onComplete {
           case Success(_: DataWritten) => commandResponseManager.updateCommand(Completed(runId))
           case Failure(exception) => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
