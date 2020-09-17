@@ -27,6 +27,14 @@ object Dependencies {
     Libs.`junit-interface` % Test
   )
 
+  val SimpleHcd = Seq(
+    CSW.`csw-framework`,
+    CSW.`csw-testkit` % Test,
+    Libs.`scalatest` % Test,
+    Libs.`junit` % Test,
+    Libs.`junit-interface` % Test
+  )
+
   val Deploy = Seq(
     CSW.`csw-framework`,
     CSW.`csw-testkit` % Test

@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigFactory
 import csw.logging.api.scaladsl.Logger
 import csw.params.core.models.Id
 import org.tmt.osw.simulatedinfrareddetector.ControllerMessages.{ControllerMessage, _}
+import org.tmt.osw.simulatedinfrareddetector.FitsActor.config
 
 import scala.concurrent.duration._
 
@@ -13,6 +14,10 @@ object ControllerActor {
   lazy private val config = ConfigFactory.load()
 
   lazy private val exposureTimerPeriod = config.getInt("exposureTimerPeriod").millis
+
+  private lazy val detectorDimensions: (Int, Int) =  {
+    (config.getInt("detector.xs"), config.getInt("detector.ys"))
+  }
 
   def apply(logger: Logger): Behavior[ControllerMessage] = Behaviors.setup { _ =>
     uninitialized(ControllerData(logger))
@@ -64,7 +69,9 @@ object ControllerActor {
         }
       case ExposureComplete(runId, replyTo) =>
         data.logger.info("Exposure Complete")
-        replyTo ! ExposureFinished(runId, data.exposureFilename)
+        replyTo ! ExposureFinished(runId,
+          FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
+          data.exposureFilename)
         idle(data.copy(Idle))
       case ExposureInProgress(runId, replyTo) =>
         val elapsedTime = System.currentTimeMillis() - data.exposureStartTime
@@ -89,7 +96,9 @@ object ControllerActor {
     Behaviors.receiveMessage {
       case ExposureComplete(runId, replyTo) =>
         data.logger.info("Exposure Complete")
-        replyTo ! ExposureFinished(runId, data.exposureFilename)
+        replyTo ! ExposureFinished(runId,
+          FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
+          data.exposureFilename)
         idle(data.copy(Aborting))
       case ExposureInProgress(runId, replyTo) =>
         Behaviors.withTimers[ControllerMessage] { timers =>
@@ -114,6 +123,12 @@ object ControllerActor {
     Behaviors.withTimers[ControllerMessage] { timers =>
       timers.startSingleTimer(ExposureInProgress(runId, replyTo), exposureTimerPeriod)
       exposing(data.copy(Exposing, newExposureStartTime = System.currentTimeMillis()))
+    }
+  }
+
+  private def generateFakeImageData(xs: Int, ys: Int) = {
+    Array.tabulate(xs, ys) {
+      case (x, y) => x * xs + y
     }
   }
 
