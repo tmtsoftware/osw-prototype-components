@@ -18,6 +18,11 @@ lazy val `simulated-infrared-detectorhcd` = project
     libraryDependencies ++= Dependencies.SimulatedInfraredDetectorhcd
   )
 
+lazy val `simple-hcd` = project
+  .settings(
+    libraryDependencies ++= Dependencies.SimpleHcd
+  )
+
 lazy val `template` = project
   .settings(
     libraryDependencies ++= Dependencies.Template
