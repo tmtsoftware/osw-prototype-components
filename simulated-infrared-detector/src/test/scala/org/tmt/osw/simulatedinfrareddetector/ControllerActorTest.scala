@@ -104,7 +104,9 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       controller ! StartExposure(testId3, probe.ref, filename)
       probe.expectMessage(ExposureStarted(testId3))
       probe.expectNoMessage(expectedExposureTime.millis)
-      probe.expectMessage(ExposureFinished(testId3, filename))
+      val finishedMessage = probe.expectMessageType[ExposureFinished]
+      finishedMessage.runId shouldBe testId3
+      finishedMessage.filename shouldBe filename
       testKit.stop(controller)
 
       val exposureTimerPeriod = config.getInt("exposureTimerPeriod")
@@ -134,7 +136,9 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       Thread.sleep(1000)
       controller ! AbortExposure(testId4, probe.ref)
       probe.expectMessage(OK(testId4))
-      probe.expectMessage(100.millis, ExposureFinished(testId4, filename))
+      val finishedMessage = probe.expectMessageType[ExposureFinished](100.millis)
+      finishedMessage.runId shouldBe testId4
+      finishedMessage.filename shouldBe filename
       probe.expectNoMessage(5.seconds)
       testKit.stop(controller)
 

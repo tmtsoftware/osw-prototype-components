@@ -1,5 +1,7 @@
 package org.tmt.osw.simulatedinfrareddetector
 
+import java.io.File
+
 import akka.actor.typed.{ActorSystem, SpawnProtocol}
 import akka.util.Timeout
 import csw.command.client.CommandServiceFactory
@@ -9,7 +11,7 @@ import csw.location.api.models.Connection.AkkaConnection
 import csw.location.api.models.{ComponentId, ComponentType}
 import csw.params.commands.CommandIssue.UnsupportedCommandIssue
 import csw.params.commands.CommandResponse.{Completed, Invalid}
-import csw.params.commands.Setup
+import csw.params.commands.{Observe, Setup}
 import csw.prefix.models.{Prefix, Subsystem}
 import csw.testkit.scaladsl.CSWService.{AlarmServer, EventServer}
 import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
@@ -79,6 +81,7 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
   }
 
   "return ExposureFinished on initialize, configureExposure, and startExposure commands" in {
+    val filename = "assemblyTest.fits"
     val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
     val assembly = CommandServiceFactory.make(akkaLocation)
 
@@ -92,11 +95,14 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
 
     Await.result(assembly.submitAndWait(configureExposureCommand), 2.seconds) shouldBe a[Completed]
 
-    val startExposureCommand = Setup(testPrefix, commandName.configureExposure, None)
-      .add(keys.filename.set("assemblyTest.fits"))
+    val startExposureCommand = Observe(testPrefix, commandName.startExposure, None)
+      .add(keys.filename.set(filename))
 
-    Await.result(assembly.submitAndWait(startExposureCommand), 10.seconds) shouldBe a[Completed]
+    Await.result(assembly.submitAndWait(startExposureCommand)(10.seconds), 10.seconds) shouldBe a[Completed]
 
+    val file = new File(filename)
+    file.exists() shouldBe true
+    file.delete()
 
   }
 }
