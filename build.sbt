@@ -23,6 +23,11 @@ lazy val `simple-hcd` = project
     libraryDependencies ++= Dependencies.SimpleHcd
   )
 
+lazy val `simple-assembly` = project
+  .settings(
+    libraryDependencies ++= Dependencies.SimpleAssembly
+  )
+
 lazy val `template` = project
   .settings(
     libraryDependencies ++= Dependencies.Template
