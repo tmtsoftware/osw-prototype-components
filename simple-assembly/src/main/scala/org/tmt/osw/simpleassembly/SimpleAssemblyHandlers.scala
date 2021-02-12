@@ -50,6 +50,8 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
     )
 
   private val sleepTimeKey = KeyType.LongKey.make("timeInMs")
+  private val sleepKey = KeyType.LongKey.make("sleepTimeInMs")
+  private val errorKey = KeyType.StringKey.make("error")
 
   override def initialize(): Unit = {
     log.info("Initializing Simple Assembly...")
@@ -64,6 +66,15 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
       case CommandName("sleep") =>
         workerActor ! Sleep(runId, command(sleepTimeKey).head)
         Started(runId)
+      case _ if command.contains(sleepKey) => // do something based on parameters
+          workerActor ! Sleep(runId, command(sleepKey).head)
+          Started(runId)
+      case _ if command.contains(errorKey) => // do something based on parameters
+        Error(runId, command(errorKey).head)
+
+        // todo sleep and error
+      case _ =>
+        Completed(runId)
     }
   }
 
@@ -74,7 +85,21 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
     }
   }
 
-  override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = Accepted(runId)
+  override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = controlCommand match {
+    case s: Setup => s.commandName match {
+      case CommandName("noop")                              => Accepted(runId)
+      case CommandName("sleep") if s.contains(sleepTimeKey) => Accepted(runId)
+      case _ if s.contains(sleepKey)                        => Accepted(runId)
+      case x                                                => Invalid(runId,
+        CommandIssue.UnsupportedCommandIssue(s"Setup command <$x> is not supported."))
+    }
+    case o: Observe => o.commandName match {
+      case CommandName("noop") => Accepted(runId)
+      case x                   => Invalid(runId,
+        CommandIssue.UnsupportedCommandIssue(s"Observe command <$x> is not supported."))
+
+    }
+  }
 
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = controlCommand match {
     case s: Setup => onSetup(runId, s)
