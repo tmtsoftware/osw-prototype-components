@@ -7,8 +7,8 @@ import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
 import csw.params.commands.ControlCommand
-import csw.time.core.models.UTCTime
 import csw.params.core.models.Id
+import csw.time.core.models.UTCTime
 
 import scala.concurrent.ExecutionContextExecutor
 
