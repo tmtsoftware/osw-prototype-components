@@ -14,7 +14,7 @@ import csw.time.core.models.UTCTime
 import org.tmt.osw.simulatedinfrareddetector.ControllerMessages._
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success}
 
 /**
@@ -25,20 +25,19 @@ import scala.util.{Failure, Success}
  * and if validation is successful, then onSubmit hook gets invoked.
  * You can find more information on this here : https://tmtsoftware.github.io/csw/commons/framework.html
  */
-class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext) extends ComponentHandlers(ctx,cswCtx) {
+class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext)
+    extends ComponentHandlers(ctx, cswCtx) {
 
   import AssemblyConstants._
   import cswCtx._
 
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
-  implicit val scheduler: Scheduler = ctx.system.scheduler
+  implicit val scheduler: Scheduler         = ctx.system.scheduler
   private val log                           = loggerFactory.getLogger
-  private val fitsWriteTimeout = 10.seconds
+  private val fitsWriteTimeout              = 10.seconds
 
-
-  private val fitsActor = ctx.spawn(FitsActor(log), "fits")
+  private val fitsActor  = ctx.spawn(FitsActor(log), "fits")
   private val controller = ctx.spawn(ControllerActor(log), "controller")
-
 
   private val controllerResponseActor = ctx.spawn[ControllerResponse](
     Behaviors.receiveMessagePartial[ControllerResponse] {
@@ -49,7 +48,7 @@ class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage],
         val result = fitsActor.ask[FitsResponse](WriteData(filename, data, _))(fitsWriteTimeout, scheduler)
         result.onComplete {
           case Success(_: DataWritten) => commandResponseManager.updateCommand(Completed(runId))
-          case Failure(exception) => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
+          case Failure(exception)      => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
         }
         Behaviors.same
       case UnsupportedCommand(runId, _, message) =>
@@ -59,9 +58,8 @@ class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage],
     "responseActor"
   )
 
-  override def initialize(): Future[Unit] = {
+  override def initialize(): Unit = {
     log.info("Initializing simulated.Infrared.Detector...")
-    Future.unit
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
@@ -74,8 +72,8 @@ class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage],
         controller ! Initialize(runId, controllerResponseActor)
         Started(runId)
       case commandName.configureExposure =>
-        val itime = command(keys.integrationTime).head
-        val coadds = command(keys.coaddition).head
+        val itime              = command(keys.integrationTime).head
+        val coadds             = command(keys.coaddition).head
         val exposureParameters = ExposureParameters(itime, coadds)
         controller ! ConfigureExposure(runId, controllerResponseActor, exposureParameters)
         Started(runId)
@@ -101,16 +99,14 @@ class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage],
 
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
     controlCommand match {
-      case s: Setup => onSetup(runId, s)
+      case s: Setup   => onSetup(runId, s)
       case o: Observe => onObserve(runId, o)
     }
   }
 
-
-
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
 
-  override def onShutdown(): Future[Unit] = { Future.unit }
+  override def onShutdown(): Unit = {}
 
   override def onGoOffline(): Unit = {}
 

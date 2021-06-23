@@ -11,9 +11,6 @@ import csw.params.commands.ControlCommand;
 import csw.time.core.models.UTCTime;
 import csw.params.core.models.Id;
 
-
-import java.util.concurrent.CompletableFuture;
-
 /**
  * Domain specific logic should be written in below handlers.
  * This handlers gets invoked when component receives messages/commands from other component/entity.
@@ -34,18 +31,13 @@ public class JSimulatedInfraredDetectorhcdHandlers extends JComponentHandlers {
     }
 
     @Override
-    public CompletableFuture<Void> jInitialize() {
-    log.info("Initializing simulated.Infrared.DetectorHcd...");
-    return CompletableFuture.runAsync(() -> {
-
-        });
+    public void jInitialize() {
+        log.info("Initializing simulated.Infrared.DetectorHcd...");
     }
 
     @Override
-    public CompletableFuture<Void> jOnShutdown() {
-        return CompletableFuture.runAsync(() -> {
+    public void jOnShutdown() {
 
-        });
     }
 
     @Override

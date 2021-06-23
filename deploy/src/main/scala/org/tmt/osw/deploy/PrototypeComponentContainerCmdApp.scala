@@ -5,6 +5,6 @@ import csw.prefix.models.Subsystem
 
 object PrototypeComponentContainerCmdApp extends App {
 
-   ContainerCmd.start("prototype-component-container-cmd-app", Subsystem.withNameInsensitive("OSW"),args)
+  ContainerCmd.start("prototype-component-container-cmd-app", Subsystem.withNameInsensitive("OSW"), args)
 
 }

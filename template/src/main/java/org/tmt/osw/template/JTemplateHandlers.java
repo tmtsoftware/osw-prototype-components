@@ -11,8 +11,6 @@ import csw.params.commands.ControlCommand;
 import csw.params.core.models.Id;
 import csw.time.core.models.UTCTime;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
  * Domain specific logic should be written in below handlers.
  * This handlers gets invoked when component receives messages/commands from other component/entity.
@@ -33,18 +31,13 @@ public class JTemplateHandlers extends JComponentHandlers {
     }
 
     @Override
-    public CompletableFuture<Void> jInitialize() {
-    log.info("Initializing template...");
-    return CompletableFuture.runAsync(() -> {
-
-        });
+    public void jInitialize() {
+        log.info("Initializing template...");
     }
 
     @Override
-    public CompletableFuture<Void> jOnShutdown() {
-        return CompletableFuture.runAsync(() -> {
+    public void jOnShutdown() {
 
-        });
     }
 
     @Override

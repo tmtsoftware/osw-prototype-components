@@ -6,7 +6,6 @@ import com.typesafe.config.ConfigFactory
 import csw.logging.api.scaladsl.Logger
 import csw.params.core.models.Id
 import org.tmt.osw.simulatedinfrareddetector.ControllerMessages.{ControllerMessage, _}
-import org.tmt.osw.simulatedinfrareddetector.FitsActor.config
 
 import scala.concurrent.duration._
 
@@ -15,7 +14,7 @@ object ControllerActor {
 
   lazy private val exposureTimerPeriod = config.getInt("exposureTimerPeriod").millis
 
-  private lazy val detectorDimensions: (Int, Int) =  {
+  private lazy val detectorDimensions: (Int, Int) = {
     (config.getInt("detector.xs"), config.getInt("detector.ys"))
   }
 
@@ -45,7 +44,7 @@ object ControllerActor {
       case StartExposure(runId, replyTo, filename) =>
         replyTo ! ExposureStarted(runId)
         startExposure(runId, data.copy(newExposureFilename = filename), replyTo)
-      case ExposureInProgress(_, _) if data.state == Aborting =>  // this can occur on abort
+      case ExposureInProgress(_, _) if data.state == Aborting => // this can occur on abort
         // ignore
         idle(data.copy(Idle))
       case Shutdown(runId, replyTo) =>
@@ -64,22 +63,27 @@ object ControllerActor {
         data.logger.info("Exposure Aborted")
         replyTo ! OK(runId)
         Behaviors.withTimers[ControllerMessage] { timers =>
-          timers.startSingleTimer(ExposureComplete(runId, replyTo), 0.seconds)  // TODO should be runId from startExposure?
+          timers.startSingleTimer(ExposureComplete(runId, replyTo), 0.seconds) // TODO should be runId from startExposure?
           aborting(data.copy(Aborting))
         }
       case ExposureComplete(runId, replyTo) =>
         data.logger.info("Exposure Complete")
-        replyTo ! ExposureFinished(runId,
+        replyTo ! ExposureFinished(
+          runId,
           FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
-          data.exposureFilename)
+          data.exposureFilename
+        )
         idle(data.copy(Idle))
       case ExposureInProgress(runId, replyTo) =>
         val elapsedTime = System.currentTimeMillis() - data.exposureStartTime
-        data.logger.debug(s"Exposure In Progress: elapsed time = $elapsedTime ms.  total time = ${calculateExposureDurationMillis(data.exposureParameters)}")
-        val (nextState, time) = if (elapsedTime > calculateExposureDurationMillis(data.exposureParameters))
-          (ExposureComplete(runId, replyTo), 0.seconds)
-        else
-          (ExposureInProgress(runId, replyTo), exposureTimerPeriod)
+        data.logger.debug(
+          s"Exposure In Progress: elapsed time = $elapsedTime ms.  total time = ${calculateExposureDurationMillis(data.exposureParameters)}"
+        )
+        val (nextState, time) =
+          if (elapsedTime > calculateExposureDurationMillis(data.exposureParameters))
+            (ExposureComplete(runId, replyTo), 0.seconds)
+          else
+            (ExposureInProgress(runId, replyTo), exposureTimerPeriod)
 
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(nextState, time)
@@ -96,9 +100,11 @@ object ControllerActor {
     Behaviors.receiveMessage {
       case ExposureComplete(runId, replyTo) =>
         data.logger.info("Exposure Complete")
-        replyTo ! ExposureFinished(runId,
+        replyTo ! ExposureFinished(
+          runId,
           FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
-          data.exposureFilename)
+          data.exposureFilename
+        )
         idle(data.copy(Aborting))
       case ExposureInProgress(runId, replyTo) =>
         Behaviors.withTimers[ControllerMessage] { timers =>
@@ -111,15 +117,14 @@ object ControllerActor {
     }
   }
 
-
-
   private def calculateExposureDurationMillis(params: ExposureParameters): Long = {
     params.integrationTimeMillis * params.coadds
   }
 
-
   private def startExposure(runId: Id, data: ControllerData, replyTo: ActorRef[ControllerResponse]) = {
-    data.logger.info(s"Starting exposure.  Itime = ${data.exposureParameters.integrationTimeMillis} ms, Coadds = ${data.exposureParameters.coadds}")
+    data.logger.info(
+      s"Starting exposure.  Itime = ${data.exposureParameters.integrationTimeMillis} ms, Coadds = ${data.exposureParameters.coadds}"
+    )
     Behaviors.withTimers[ControllerMessage] { timers =>
       timers.startSingleTimer(ExposureInProgress(runId, replyTo), exposureTimerPeriod)
       exposing(data.copy(Exposing, newExposureStartTime = System.currentTimeMillis()))

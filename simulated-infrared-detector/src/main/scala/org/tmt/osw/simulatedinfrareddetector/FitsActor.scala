@@ -10,14 +10,12 @@ import org.tmt.osw.simulatedinfrareddetector.ControllerMessages.{DataWritten, Fi
 object FitsActor {
   lazy private val config = ConfigFactory.load()
 
-    def apply(logger: Logger): Behaviors.Receive[FitsMessage] = Behaviors.receiveMessagePartial[FitsMessage] {
-      case WriteData(filename, data,  replyTo) =>
-        writeData(logger, data, filename)
-        replyTo ! DataWritten(filename)
-        Behaviors.same
-    }
-
-
+  def apply(logger: Logger): Behaviors.Receive[FitsMessage] = Behaviors.receiveMessagePartial[FitsMessage] {
+    case WriteData(filename, data, replyTo) =>
+      writeData(logger, data, filename)
+      replyTo ! DataWritten(filename)
+      Behaviors.same
+  }
 
   private def writeData(logger: Logger, data: FitsData, filename: String): Unit = {
     logger.info(s"Writing data.  Image dimensions = ${data.dimensions}")

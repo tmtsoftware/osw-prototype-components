@@ -10,7 +10,7 @@ import csw.params.commands.ControlCommand
 import csw.time.core.models.UTCTime
 import csw.params.core.models.Id
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -20,15 +20,15 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
  * and if validation is successful, then onSubmit hook gets invoked.
  * You can find more information on this here : https://tmtsoftware.github.io/csw/commons/framework.html
  */
-class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext) extends ComponentHandlers(ctx, cswCtx) {
+class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext)
+    extends ComponentHandlers(ctx, cswCtx) {
 
   import cswCtx._
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
 
-  override def initialize(): Future[Unit] = {
+  override def initialize(): Unit = {
     log.info("Initializing simulated.Infrared.DetectorHcd...")
-    Future.unit
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
@@ -39,7 +39,7 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
 
-  override def onShutdown(): Future[Unit] = { Future.unit }
+  override def onShutdown(): Unit = {}
 
   override def onGoOffline(): Unit = {}
 

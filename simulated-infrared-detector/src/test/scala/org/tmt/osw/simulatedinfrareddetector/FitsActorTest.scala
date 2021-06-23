@@ -19,12 +19,12 @@ class FitsActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike with 
     "write FITS file on WriteData" in {
       val filename = "FitsActorTest.fits"
       val data = Array(
-        Array(1,2,3,4),
-        Array(2,4,6,8),
-        Array(3,4,5,6),
-        Array(4,8,12,16)
+        Array(1, 2, 3, 4),
+        Array(2, 4, 6, 8),
+        Array(3, 4, 5, 6),
+        Array(4, 8, 12, 16)
       )
-      val fits = testKit.spawn(FitsActor(logger), "fits")
+      val fits  = testKit.spawn(FitsActor(logger), "fits")
       val probe = testKit.createTestProbe[FitsResponse]()
       fits ! WriteData(filename, FitsData(data), probe.ref)
       probe.expectMessage(10.seconds, DataWritten(filename))

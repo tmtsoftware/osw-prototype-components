@@ -21,7 +21,7 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
   }
 
   test("HCD should be locatable using Location Service") {
-    val connection = AkkaConnection(ComponentId(Prefix("OSW.simulated.Infrared.DetectorHcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("ESW.simulated.Infrared.DetectorHcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     akkaLocation.connection shouldBe connection

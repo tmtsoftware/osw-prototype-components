@@ -12,7 +12,7 @@ import csw.params.core.models.Id
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -51,9 +51,8 @@ class SimpleHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswCont
 
   private val sleepTimeKey = KeyType.LongKey.make("timeInMs")
 
-  override def initialize(): Future[Unit] = {
+  override def initialize(): Unit = {
     log.info("Initializing Simple HCD...")
-    Future.unit
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
@@ -84,7 +83,7 @@ class SimpleHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswCont
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
 
-  override def onShutdown(): Future[Unit] = { Future.unit }
+  override def onShutdown(): Unit = {}
 
   override def onGoOffline(): Unit = {}
 

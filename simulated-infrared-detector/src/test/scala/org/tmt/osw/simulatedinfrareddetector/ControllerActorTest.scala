@@ -24,7 +24,6 @@ class TestAppender(callback: Any => Unit) extends LogAppenderBuilder {
     new StdOutAppender(system, stdHeaders, callback)
 }
 
-
 class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfterEach {
 
   private lazy val actorSystem   = ActorSystem(SpawnProtocol(), "test")
@@ -39,10 +38,10 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
   lazy private val config = ConfigFactory.load()
 
-  private val testId = Id()
-  private val testId2 = Id()
-  private val testId3 = Id()
-  private val testId4 = Id()
+  private val testId   = Id()
+  private val testId2  = Id()
+  private val testId3  = Id()
+  private val testId4  = Id()
   private val dumpLogs = false
 
   override def beforeAll(): Unit = {
@@ -65,7 +64,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
   "ControllerActor" must {
     "return OK on initialize" in {
       val controller = testKit.spawn(ControllerActor(logger), "controller")
-      val probe = testKit.createTestProbe[ControllerResponse]()
+      val probe      = testKit.createTestProbe[ControllerResponse]()
       controller ! Initialize(testId, probe.ref)
       probe.expectMessage(OK(testId))
       testKit.stop(controller)
@@ -76,7 +75,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
     "return OK on configureExposure" in {
       val controller = testKit.spawn(ControllerActor(logger), "controller")
-      val probe = testKit.createTestProbe[ControllerResponse]()
+      val probe      = testKit.createTestProbe[ControllerResponse]()
       controller ! Initialize(testId, probe.ref)
       probe.expectMessage(OK(testId))
       controller ! ConfigureExposure(testId2, probe.ref, ExposureParameters(5000, 3))
@@ -90,13 +89,13 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
     }
 
     "take an exposure" in {
-      val itime = 2000
-      val coadds = 3
+      val itime                = 2000
+      val coadds               = 3
       val expectedExposureTime = itime * coadds
-      val filename = "test.fits"
+      val filename             = "test.fits"
 
       val controller = testKit.spawn(ControllerActor(logger), "controller")
-      val probe = testKit.createTestProbe[ControllerResponse]()
+      val probe      = testKit.createTestProbe[ControllerResponse]()
       controller ! Initialize(testId, probe.ref)
       probe.expectMessage(OK(testId))
       controller ! ConfigureExposure(testId2, probe.ref, ExposureParameters(itime, coadds))
@@ -109,7 +108,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       finishedMessage.filename shouldBe filename
       testKit.stop(controller)
 
-      val exposureTimerPeriod = config.getInt("exposureTimerPeriod")
+      val exposureTimerPeriod      = config.getInt("exposureTimerPeriod")
       val expectedExposureMessages = expectedExposureTime / exposureTimerPeriod
 
       val expectedNumLogMessages = 5 + expectedExposureMessages
@@ -118,15 +117,15 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       logBuffer(1).getString("message") shouldBe "In idle state"
       logBuffer(2).getString("message") shouldBe "In idle state"
       logBuffer(3).getString("message").contains("Starting exposure") shouldBe true
-      logBuffer(expectedExposureMessages+3).getString("message") shouldBe "Exposure Complete"
-      logBuffer(expectedExposureMessages+4).getString("message") shouldBe "In idle state"
+      logBuffer(expectedExposureMessages + 3).getString("message") shouldBe "Exposure Complete"
+      logBuffer(expectedExposureMessages + 4).getString("message") shouldBe "In idle state"
 
     }
 
     "abort an exposure" in {
-      val filename = "test.fits"
+      val filename   = "test.fits"
       val controller = testKit.spawn(ControllerActor(logger), "controller")
-      val probe = testKit.createTestProbe[ControllerResponse]()
+      val probe      = testKit.createTestProbe[ControllerResponse]()
       controller ! Initialize(testId, probe.ref)
       probe.expectMessage(OK(testId))
       controller ! ConfigureExposure(testId2, probe.ref, ExposureParameters(5000, 1))
@@ -142,7 +141,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       probe.expectNoMessage(5.seconds)
       testKit.stop(controller)
 
-      val exposureTimerPeriod = config.getInt("exposureTimerPeriod")
+      val exposureTimerPeriod      = config.getInt("exposureTimerPeriod")
       val expectedExposureMessages = 1000 / exposureTimerPeriod
 
       val expectedNumLogMessages = 7 + expectedExposureMessages
@@ -151,10 +150,10 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       logBuffer(1).getString("message") shouldBe "In idle state"
       logBuffer(2).getString("message") shouldBe "In idle state"
       logBuffer(3).getString("message").contains("Starting exposure") shouldBe true
-      logBuffer(expectedExposureMessages+3).getString("message") shouldBe "Exposure Aborted"
-      logBuffer(expectedExposureMessages+4).getString("message") shouldBe "Exposure Complete"
-      logBuffer(expectedExposureMessages+5).getString("message") shouldBe "In idle state"
-      logBuffer(expectedExposureMessages+6).getString("message") shouldBe "In idle state"
+      logBuffer(expectedExposureMessages + 3).getString("message") shouldBe "Exposure Aborted"
+      logBuffer(expectedExposureMessages + 4).getString("message") shouldBe "Exposure Complete"
+      logBuffer(expectedExposureMessages + 5).getString("message") shouldBe "In idle state"
+      logBuffer(expectedExposureMessages + 6).getString("message") shouldBe "In idle state"
 
     }
   }

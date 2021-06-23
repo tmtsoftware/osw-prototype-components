@@ -10,7 +10,7 @@ import csw.params.commands.ControlCommand
 import csw.time.core.models.UTCTime
 import csw.params.core.models.Id
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -26,9 +26,8 @@ class TemplateHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
 
-  override def initialize(): Future[Unit] = {
+  override def initialize(): Unit = {
     log.info("Initializing template...")
-    Future.unit
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
@@ -39,7 +38,7 @@ class TemplateHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
 
-  override def onShutdown(): Future[Unit] = { Future.unit }
+  override def onShutdown(): Unit = {}
 
   override def onGoOffline(): Unit = {}
 

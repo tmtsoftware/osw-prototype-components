@@ -21,7 +21,10 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyWordSpecLike with BeforeAndAfterEach {
+class SimulatedInfraredDetectorTest
+    extends ScalaTestFrameworkTestKit(AlarmServer, EventServer)
+    with AnyWordSpecLike
+    with BeforeAndAfterEach {
 
   import AssemblyConstants._
   import frameworkTestKit.frameworkWiring._
@@ -30,11 +33,9 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
   private implicit val ec: ExecutionContext                            = actorSystem.executionContext
   private implicit val timeout: Timeout                                = 12.seconds
 
-
-  private val testPrefix = Prefix(Subsystem.CSW, "test")
-  private val assemblyPrefix = Prefix(Subsystem.CSW, "simulated.Infrared.Detector")
-  private val assemblyConnection = AkkaConnection(ComponentId(assemblyPrefix, ComponentType.Assembly)
-  )
+  private val testPrefix         = Prefix(Subsystem.CSW, "test")
+  private val assemblyPrefix     = Prefix(Subsystem.CSW, "simulated.Infrared.Detector")
+  private val assemblyConnection = AkkaConnection(ComponentId(assemblyPrefix, ComponentType.Assembly))
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -44,11 +45,10 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
 
   override def afterEach(): Unit = {
     val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
-    val supervisor = akkaLocation.componentRef
+    val supervisor   = akkaLocation.componentRef
     supervisor ! Restart
     Thread.sleep(1000)
   }
-
 
   "assembly" must {
 
@@ -59,7 +59,7 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
 
     "return Completed on initialize command" in {
       val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
-      val assembly = CommandServiceFactory.make(akkaLocation)
+      val assembly     = CommandServiceFactory.make(akkaLocation)
 
       val initializeCommand = Setup(testPrefix, commandName.initialize, None)
 
@@ -68,7 +68,7 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
 
     "ConfigureExposure command when uninitialized should return UnsupportedCommand" in {
       val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
-      val assembly = CommandServiceFactory.make(akkaLocation)
+      val assembly     = CommandServiceFactory.make(akkaLocation)
 
       val configureExposureCommand = Setup(testPrefix, commandName.configureExposure, None)
         .add(keys.integrationTime.set(1000))
@@ -81,9 +81,9 @@ class SimulatedInfraredDetectorTest extends ScalaTestFrameworkTestKit(AlarmServe
   }
 
   "return ExposureFinished on initialize, configureExposure, and startExposure commands" in {
-    val filename = "assemblyTest.fits"
+    val filename     = "assemblyTest.fits"
     val akkaLocation = Await.result(locationService.resolve(assemblyConnection, 10.seconds), 10.seconds).get
-    val assembly = CommandServiceFactory.make(akkaLocation)
+    val assembly     = CommandServiceFactory.make(akkaLocation)
 
     val initializeCommand = Setup(testPrefix, commandName.initialize, None)
 
