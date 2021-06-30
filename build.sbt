@@ -36,7 +36,9 @@ lazy val `template` = project
 lazy val deploy = project
   .dependsOn(
     `simulated-infrared-detector`,
-    `simulated-infrared-detectorhcd`
+    `simulated-infrared-detectorhcd`,
+    `simple-assembly`,
+    `simple-hcd`
   )
   .enablePlugins(JavaAppPackaging, CswBuildInfo)
   .settings(
