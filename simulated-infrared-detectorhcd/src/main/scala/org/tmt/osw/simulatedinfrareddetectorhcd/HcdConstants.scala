@@ -2,6 +2,7 @@ package org.tmt.osw.simulatedinfrareddetectorhcd
 
 import csw.params.commands.CommandName
 import csw.params.core.generics.{Key, KeyType}
+import csw.params.core.states.StateName
 
 object HcdConstants {
   object commandName {
@@ -13,8 +14,12 @@ object HcdConstants {
   }
   object keys {
     val filename: Key[String]     = KeyType.StringKey.make("filename")
-    val integrationTime: Key[Int] = KeyType.IntKey.make("integrationTime")
-    val coaddition: Key[Int]      = KeyType.IntKey.make("coadditions")
-  }
+    val resets: Key[Int] = KeyType.IntKey.make("resets")
+    val reads: Key[Int]      = KeyType.IntKey.make("reads")
+    val ramps: Key[Int]      = KeyType.IntKey.make("ramps")
 
+    val rampsDone: Key[Int]       = KeyType.IntKey.make("rampsDone")
+    val readsDone: Key[Int]       = KeyType.IntKey.make("readsDone")
+  }
+  val currentStateName: StateName = StateName("controllerState")
 }

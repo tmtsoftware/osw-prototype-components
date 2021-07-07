@@ -36,7 +36,7 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
   private val fitsWriteTimeout              = 10.seconds
 
   private val fitsActor  = ctx.spawn(FitsActor(log), "fits")
-  private val controller = ctx.spawn(ControllerActor(log), "controller")
+  private val controller = ctx.spawn(ControllerActor(log, currentStatePublisher, componentInfo.prefix), "controller")
 
   private val controllerResponseActor = ctx.spawn[ControllerResponse](
     Behaviors.receiveMessagePartial[ControllerResponse] {
@@ -70,9 +70,10 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
         controller ! Initialize(runId, controllerResponseActor)
         Started(runId)
       case commandName.configureExposure =>
-        val itime              = command(keys.integrationTime).head
-        val coadds             = command(keys.coaddition).head
-        val exposureParameters = ExposureParameters(itime, coadds)
+        val resets              = command(keys.resets).head
+        val reads             = command(keys.reads).head
+        val ramps             = command(keys.ramps).head
+        val exposureParameters = ExposureParameters(resets, reads, ramps)
         controller ! ConfigureExposure(runId, controllerResponseActor, exposureParameters)
         Started(runId)
       case commandName.abortExposure =>

@@ -3,11 +3,21 @@ package org.tmt.osw.simulatedinfrareddetectorhcd
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.config.ConfigFactory
+import csw.framework.CurrentStatePublisher
 import csw.logging.api.scaladsl.Logger
 import csw.params.core.models.Id
+import csw.params.core.states.CurrentState
+import csw.prefix.models.Prefix
 import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages.{AbortExposure, ConfigureExposure, ControllerMessage, ControllerResponse, ExposureComplete, ExposureFinished, ExposureInProgress, ExposureStarted, Initialize, OK, Shutdown, StartExposure, UnsupportedCommand}
+import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.keys
 
 import scala.concurrent.duration._
+
+/*
+  Exposure configured with x resets, n reads, r ramps
+  Frame read time is numberOfPixels/32 * pixelClockTimeMs (from config)
+
+ */
 
 object ControllerActor {
   lazy private val config = ConfigFactory.load()
@@ -18,8 +28,11 @@ object ControllerActor {
     (config.getInt("detector.xs"), config.getInt("detector.ys"))
   }
 
-  def apply(logger: Logger): Behavior[ControllerMessage] = Behaviors.setup { _ =>
-    uninitialized(ControllerData(logger))
+  private lazy val frameReadTimeMs =
+    (detectorDimensions._1 * detectorDimensions._2 * config.getDouble("pixelClockTimeMs") / 32.0).millis
+
+  def apply(logger: Logger, currentStatePublisher: CurrentStatePublisher, prefix: Prefix): Behavior[ControllerMessage] = Behaviors.setup { _ =>
+    uninitialized(ControllerData(logger, currentStatePublisher, prefix))
   }
 
   private def uninitialized(data: ControllerData): Behavior[ControllerMessage] = {
@@ -43,7 +56,7 @@ object ControllerActor {
         idle(data.copy(newParams = params))
       case StartExposure(runId, replyTo, filename) =>
         replyTo ! ExposureStarted(runId)
-        startExposure(runId, data.copy(newExposureFilename = filename), replyTo)
+        startExposure(runId, data.copy(newStatus = ControllerStatus(), newExposureFilename = filename), replyTo)
       case ExposureInProgress(_, _) if data.state == Aborting => // this can occur on abort
         // ignore
         idle(data.copy(Idle))
@@ -79,11 +92,25 @@ object ControllerActor {
         data.logger.debug(
           s"Exposure In Progress: elapsed time = $elapsedTime ms.  total time = ${calculateExposureDurationMillis(data.exposureParameters)}"
         )
+        val numReadTimes = math.floor(elapsedTime/frameReadTimeMs).toInt
+        val readsPerRamp = data.exposureParameters.resets+data.exposureParameters.reads
+        val rampsDone = math.floor(numReadTimes/readsPerRamp).toInt
+        val readsDone = numReadTimes - rampsDone*readsPerRamp - data.exposureParameters.resets match {
+          case x if x > 0 => x
+          case _ => 0
+        }
+        data.logger.debug(
+          s"Exposure In Progress: readsDone = $readsDone of ${data.exposureParameters.reads}.  Done = $readsDone of ${data.exposureParameters.reads}."
+        )
+
+        data.copy(newStatus = ControllerStatus(readsDone, rampsDone))
+        data.currentStatePublisher.publish(createCurrentState(data.prefix, data.status))
         val (nextState, time) =
-          if (elapsedTime > calculateExposureDurationMillis(data.exposureParameters))
-            (ExposureComplete(runId, replyTo), 0.seconds)
-          else
+          if (rampsDone < data.exposureParameters.ramps)
             (ExposureInProgress(runId, replyTo), exposureTimerPeriod)
+          else
+            (ExposureComplete(runId, replyTo), 0.seconds)
+
 
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(nextState, time)
@@ -118,12 +145,12 @@ object ControllerActor {
   }
 
   private def calculateExposureDurationMillis(params: ExposureParameters): Long = {
-    params.integrationTimeMillis * params.coadds
+    (params.resets + params.reads) * params.ramps
   }
 
   private def startExposure(runId: Id, data: ControllerData, replyTo: ActorRef[ControllerResponse]) = {
     data.logger.info(
-      s"Starting exposure.  Itime = ${data.exposureParameters.integrationTimeMillis} ms, Coadds = ${data.exposureParameters.coadds}"
+      s"Starting exposure.  resets = ${data.exposureParameters.resets} ms, reads = ${data.exposureParameters.reads}, ramps = ${data.exposureParameters.ramps}"
     )
     Behaviors.withTimers[ControllerMessage] { timers =>
       timers.startSingleTimer(ExposureInProgress(runId, replyTo), exposureTimerPeriod)
@@ -137,4 +164,8 @@ object ControllerActor {
     }
   }
 
+  private def createCurrentState(prefix: Prefix, status: ControllerStatus) =
+    CurrentState(prefix, HcdConstants.currentStateName)
+      .add(keys.readsDone.set(status.readsDone))
+      .add(keys.rampsDone.set(status.rampsDone))
 }

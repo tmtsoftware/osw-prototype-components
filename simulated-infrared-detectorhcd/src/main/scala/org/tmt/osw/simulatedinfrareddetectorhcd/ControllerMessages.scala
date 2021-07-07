@@ -28,4 +28,5 @@ case object ControllerMessages {
 
   sealed trait FitsResponse
   case class DataWritten(filename: String) extends FitsResponse
+
 }
