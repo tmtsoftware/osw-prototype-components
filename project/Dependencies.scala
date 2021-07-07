@@ -24,7 +24,8 @@ object Dependencies {
     CSW.`csw-testkit` % Test,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
-    Libs.`junit-interface` % Test
+    Libs.`junit-interface` % Test,
+    Akka.`actor-testkit-typed` % Test
   )
 
   val SimpleHcd = Seq(

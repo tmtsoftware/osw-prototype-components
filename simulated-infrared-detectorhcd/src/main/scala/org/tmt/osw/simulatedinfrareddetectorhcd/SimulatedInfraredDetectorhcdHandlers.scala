@@ -1,16 +1,22 @@
 package org.tmt.osw.simulatedinfrareddetectorhcd
 
-import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.Scheduler
+import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import csw.command.client.messages.TopLevelActorMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
-import csw.params.commands.ControlCommand
+import csw.params.commands.{CommandIssue, ControlCommand, Observe, Setup}
 import csw.params.core.models.Id
 import csw.time.core.models.UTCTime
+import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages.{AbortExposure, ConfigureExposure, ControllerResponse, DataWritten, ExposureFinished, FitsResponse, Initialize, OK, Shutdown, StartExposure, UnsupportedCommand, WriteData}
+import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.{commandName, keys}
 
 import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.duration.DurationInt
+import scala.util.{Failure, Success}
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -25,8 +31,31 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
 
   import cswCtx._
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  implicit val scheduler: Scheduler         = ctx.system.scheduler
   private val log                           = loggerFactory.getLogger
+  private val fitsWriteTimeout              = 10.seconds
 
+  private val fitsActor  = ctx.spawn(FitsActor(log), "fits")
+  private val controller = ctx.spawn(ControllerActor(log), "controller")
+
+  private val controllerResponseActor = ctx.spawn[ControllerResponse](
+    Behaviors.receiveMessagePartial[ControllerResponse] {
+      case OK(runId) =>
+        commandResponseManager.updateCommand(Completed(runId))
+        Behaviors.same
+      case ExposureFinished(runId, data, filename) =>
+        val result = fitsActor.ask[FitsResponse](WriteData(filename, data, _))(fitsWriteTimeout, scheduler)
+        result.onComplete {
+          case Success(_: DataWritten) => commandResponseManager.updateCommand(Completed(runId))
+          case Failure(exception)      => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
+        }
+        Behaviors.same
+      case UnsupportedCommand(runId, _, message) =>
+        commandResponseManager.updateCommand(Invalid(runId, CommandIssue.UnsupportedCommandIssue(message.toString)))
+        Behaviors.same
+    },
+    "responseActor"
+  )
   override def initialize(): Unit = {
     log.info("Initializing simulated.Infrared.DetectorHcd...")
   }
@@ -35,8 +64,43 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = Accepted(runId)
 
-  override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = Completed(runId)
+  def onSetup(runId: Id, command: Setup): SubmitResponse = {
+    command.commandName match {
+      case commandName.initialize =>
+        controller ! Initialize(runId, controllerResponseActor)
+        Started(runId)
+      case commandName.configureExposure =>
+        val itime              = command(keys.integrationTime).head
+        val coadds             = command(keys.coaddition).head
+        val exposureParameters = ExposureParameters(itime, coadds)
+        controller ! ConfigureExposure(runId, controllerResponseActor, exposureParameters)
+        Started(runId)
+      case commandName.abortExposure =>
+        controller ! AbortExposure(runId, controllerResponseActor)
+        Started(runId)
+      case commandName.shutdown =>
+        controller ! Shutdown(runId, controllerResponseActor)
+        Started(runId)
+      case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Setup command"))
+    }
+  }
 
+  def onObserve(runId: Id, command: Observe): SubmitResponse = {
+    command.commandName match {
+      case commandName.startExposure =>
+        val filename = command(keys.filename).head
+        controller ! StartExposure(runId, controllerResponseActor, filename)
+        Started(runId)
+      case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Setup command"))
+    }
+  }
+
+  override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
+    controlCommand match {
+      case s: Setup   => onSetup(runId, s)
+      case o: Observe => onObserve(runId, o)
+    }
+  }
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
 
   override def onShutdown(): Unit = {}
