@@ -93,7 +93,7 @@ class SimulatedInfraredDetectorHandlers(ctx: ActorContext[TopLevelActorMessage],
         val filename = command(keys.filename).head
         controller ! StartExposure(runId, controllerResponseActor, filename)
         Started(runId)
-      case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Setup command"))
+      case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Observe command"))
     }
   }
 
