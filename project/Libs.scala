@@ -22,7 +22,7 @@ object AkkaHttp {
 
 object Akka {
   val Version = "2.6.10"
-  val `akka-actor-testkit-typed` = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version
+  val `actor-testkit-typed` = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version
 }
 
 object CSW {
