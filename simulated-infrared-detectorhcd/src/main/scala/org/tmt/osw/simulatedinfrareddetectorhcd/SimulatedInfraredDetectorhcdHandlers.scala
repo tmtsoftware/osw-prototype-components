@@ -11,7 +11,7 @@ import csw.params.commands.CommandResponse._
 import csw.params.commands.{CommandIssue, ControlCommand, Observe, Setup}
 import csw.params.core.models.Id
 import csw.time.core.models.UTCTime
-import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages.{AbortExposure, ConfigureExposure, ControllerResponse, DataWritten, ExposureFinished, FitsResponse, Initialize, OK, Shutdown, StartExposure, UnsupportedCommand, WriteData}
+import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages._
 import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.{commandName, keys}
 
 import scala.concurrent.ExecutionContextExecutor

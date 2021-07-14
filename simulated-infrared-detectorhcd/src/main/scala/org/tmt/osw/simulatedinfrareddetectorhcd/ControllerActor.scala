@@ -29,7 +29,7 @@ object ControllerActor {
   }
 
   private lazy val frameReadTimeMs =
-    (detectorDimensions._1 * detectorDimensions._2 * config.getDouble("pixelClockTimeMs") / 32.0).millis
+    detectorDimensions._1 * detectorDimensions._2 * config.getDouble("pixelClockTimeMs") / 32.0
 
   def apply(logger: Logger, currentStatePublisher: CurrentStatePublisher, prefix: Prefix): Behavior[ControllerMessage] = Behaviors.setup { _ =>
     uninitialized(ControllerData(logger, currentStatePublisher, prefix))
@@ -94,13 +94,18 @@ object ControllerActor {
         )
         val numReadTimes = math.floor(elapsedTime/frameReadTimeMs).toInt
         val readsPerRamp = data.exposureParameters.resets+data.exposureParameters.reads
+
+        data.logger.debug(
+          s"Exposure In Progress: numReadTimes = $numReadTimes, readsPerRamp = $readsPerRamp."
+        )
+
         val rampsDone = math.floor(numReadTimes/readsPerRamp).toInt
         val readsDone = numReadTimes - rampsDone*readsPerRamp - data.exposureParameters.resets match {
           case x if x > 0 => x
           case _ => 0
         }
         data.logger.debug(
-          s"Exposure In Progress: readsDone = $readsDone of ${data.exposureParameters.reads}.  Done = $readsDone of ${data.exposureParameters.reads}."
+          s"Exposure In Progress: readsDone = $readsDone of ${data.exposureParameters.reads}.  rampsDone = $rampsDone of ${data.exposureParameters.ramps}."
         )
 
         data.copy(newStatus = ControllerStatus(readsDone, rampsDone))
