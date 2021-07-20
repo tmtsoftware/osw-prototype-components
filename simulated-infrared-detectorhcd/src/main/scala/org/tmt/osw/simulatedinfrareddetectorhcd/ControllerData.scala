@@ -1,7 +1,8 @@
 package org.tmt.osw.simulatedinfrareddetectorhcd
 
-import csw.framework.CurrentStatePublisher
+import akka.actor.typed.ActorRef
 import csw.logging.api.scaladsl.Logger
+import csw.params.core.states.CurrentState
 import csw.prefix.models.Prefix
 
 sealed trait ControllerState
@@ -24,14 +25,14 @@ object ControllerStatus {
 }
 
 case class ControllerData(
-    logger: Logger,
-    currentStatePublisher: CurrentStatePublisher,
-    prefix: Prefix,
-    state: ControllerState,
-    status: ControllerStatus,
-    exposureParameters: ExposureParameters,
-    exposureStartTime: Long,
-    exposureFilename: String
+                           logger: Logger,
+                           currentStateForwarder: ActorRef[CurrentState],
+                           prefix: Prefix,
+                           state: ControllerState,
+                           status: ControllerStatus,
+                           exposureParameters: ExposureParameters,
+                           exposureStartTime: Long,
+                           exposureFilename: String
 ) {
   def copy(
       newState: ControllerState = state,
@@ -40,15 +41,15 @@ case class ControllerData(
       newExposureStartTime: Long = exposureStartTime,
       newExposureFilename: String = exposureFilename
   ): ControllerData = {
-    ControllerData(logger, currentStatePublisher, prefix, newState, newStatus, newParams, newExposureStartTime, newExposureFilename)
+    ControllerData(logger, currentStateForwarder, prefix, newState, newStatus, newParams, newExposureStartTime, newExposureFilename)
   }
 }
 
 object ControllerData {
-  def apply(logger: Logger, currentStatePublisher: CurrentStatePublisher, prefix: Prefix): ControllerData =
+  def apply(logger: Logger, currentStateForwarder: ActorRef[CurrentState], prefix: Prefix): ControllerData =
     ControllerData(
       logger,
-      currentStatePublisher,
+      currentStateForwarder,
       prefix,
       Uninitialized,
       ControllerStatus(),

@@ -3,12 +3,11 @@ package org.tmt.osw.simulatedinfrareddetectorhcd
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import com.typesafe.config.ConfigFactory
-import csw.framework.CurrentStatePublisher
 import csw.logging.api.scaladsl.Logger
 import csw.params.core.models.Id
 import csw.params.core.states.CurrentState
 import csw.prefix.models.Prefix
-import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages.{AbortExposure, ConfigureExposure, ControllerMessage, ControllerResponse, ExposureComplete, ExposureFinished, ExposureInProgress, ExposureStarted, Initialize, OK, Shutdown, StartExposure, UnsupportedCommand}
+import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages._
 import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.keys
 
 import scala.concurrent.duration._
@@ -31,7 +30,7 @@ object ControllerActor {
   private lazy val frameReadTimeMs =
     detectorDimensions._1 * detectorDimensions._2 * config.getDouble("pixelClockTimeMs") / 32.0
 
-  def apply(logger: Logger, currentStatePublisher: CurrentStatePublisher, prefix: Prefix): Behavior[ControllerMessage] = Behaviors.setup { _ =>
+  def apply(logger: Logger, currentStatePublisher: ActorRef[CurrentState], prefix: Prefix): Behavior[ControllerMessage] = Behaviors.setup { _ =>
     uninitialized(ControllerData(logger, currentStatePublisher, prefix))
   }
 
@@ -108,8 +107,8 @@ object ControllerActor {
           s"Exposure In Progress: readsDone = $readsDone of ${data.exposureParameters.reads}.  rampsDone = $rampsDone of ${data.exposureParameters.ramps}."
         )
 
-        data.copy(newStatus = ControllerStatus(readsDone, rampsDone))
-        data.currentStatePublisher.publish(createCurrentState(data.prefix, data.status))
+        val status = ControllerStatus(readsDone, rampsDone)
+        data.currentStateForwarder ! createCurrentState(data.prefix, status)
         val (nextState, time) =
           if (rampsDone < data.exposureParameters.ramps)
             (ExposureInProgress(runId, replyTo), exposureTimerPeriod)
@@ -119,7 +118,7 @@ object ControllerActor {
 
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(nextState, time)
-          exposing(data.copy(Exposing))
+          exposing(data.copy(Exposing, newStatus = status))
         }
       case x =>
         x.replyTo ! UnsupportedCommand(x.runId, "exposing", x)

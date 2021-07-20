@@ -4,12 +4,14 @@ import akka.actor.typed.Scheduler
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import csw.command.client.messages.TopLevelActorMessage
+import csw.command.client.models.framework.PubSub.PublisherMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
 import csw.params.commands.{CommandIssue, ControlCommand, Observe, Setup}
 import csw.params.core.models.Id
+import csw.params.core.states.CurrentState
 import csw.time.core.models.UTCTime
 import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages._
 import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.{commandName, keys}
@@ -36,7 +38,14 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
   private val fitsWriteTimeout              = 10.seconds
 
   private val fitsActor  = ctx.spawn(FitsActor(log), "fits")
-  private val controller = ctx.spawn(ControllerActor(log, currentStatePublisher, componentInfo.prefix), "controller")
+  private val currentStateForwarder = ctx.spawn[CurrentState](
+    Behaviors.receiveMessage[CurrentState] { x =>
+      currentStatePublisher.publish(x)
+      Behaviors.same
+    }, "currentState"
+  )
+  private val controller = ctx.spawn(ControllerActor(log, currentStateForwarder, componentInfo.prefix), "controller")
+
 
   private val controllerResponseActor = ctx.spawn[ControllerResponse](
     Behaviors.receiveMessagePartial[ControllerResponse] {
