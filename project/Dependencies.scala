@@ -16,7 +16,7 @@ object Dependencies {
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test,
-    Akka.`akka-actor-testkit-typed` % Test
+    Akka.`actor-testkit-typed` % Test
   )
 
   val SimulatedInfraredDetectorhcd = Seq(
