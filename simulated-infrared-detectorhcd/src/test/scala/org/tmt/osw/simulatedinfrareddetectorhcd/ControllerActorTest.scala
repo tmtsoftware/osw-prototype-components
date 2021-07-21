@@ -40,7 +40,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
   protected val logBuffer: mutable.Buffer[JsObject] = mutable.Buffer.empty[JsObject]
   protected val testAppender                        = new TestAppender(x => {
-      print(x.toString)
+      //print(x.toString)
       logBuffer += Json.parse(x.toString).as[JsObject]
   })
 
@@ -127,7 +127,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       testKit.stop(controller)
 
       val exposureTimerPeriod = config.getInt("exposureTimerPeriod")
-      println(expectedExposureTime)
+      //println(expectedExposureTime)
       val expectedExposureLoops = (expectedExposureTime / exposureTimerPeriod).toInt+1
       val expectedExposureMessages = expectedExposureLoops * 3
 
