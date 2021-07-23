@@ -1,18 +1,24 @@
 package org.tmt.osw.simpleassembly
 
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import csw.command.api.scaladsl.CommandService
+import csw.command.client.CommandServiceFactory
 import csw.command.client.messages.TopLevelActorMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
-import csw.location.api.models.TrackingEvent
+import csw.location.api.models.ComponentType.HCD
+import csw.location.api.models.Connection.AkkaConnection
+import csw.location.api.models._
 import csw.params.commands.CommandResponse._
 import csw.params.commands._
 import csw.params.core.generics.KeyType
 import csw.params.core.models.Id
+import csw.prefix.models.Prefix
 import csw.time.core.models.UTCTime
 
-import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.duration.{DurationLong, FiniteDuration, MILLISECONDS}
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -25,11 +31,17 @@ import scala.concurrent.ExecutionContextExecutor
 class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext) extends ComponentHandlers(ctx, cswCtx) {
 
   import cswCtx._
+
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
-  private val log                           = loggerFactory.getLogger
+  implicit val actorSystem: ActorSystem[Nothing] = ctx.system
+  private val log = loggerFactory.getLogger
 
   sealed trait SleepCommand
+
   case class Sleep(runId: Id, timeInMillis: Long) extends SleepCommand
+
+  private val hcdConnection = AkkaConnection(ComponentId(Prefix("CSW.simulated.SimpleHcd"), HCD))
+  private var simpleHcd: Option[CommandService] = None
 
   private val workerActor =
     ctx.spawn(
@@ -50,14 +62,40 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
     )
 
   private val sleepTimeKey = KeyType.LongKey.make("timeInMs")
-  private val sleepKey     = KeyType.LongKey.make("sleepTimeInMs")
-  private val errorKey     = KeyType.StringKey.make("error")
+  private val sleepKey = KeyType.LongKey.make("sleepTimeInMs")
+  private val errorKey = KeyType.StringKey.make("error")
 
   override def initialize(): Unit = {
     log.info("Initializing Simple Assembly...")
   }
 
-  override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
+  override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
+
+    trackingEvent match {
+      case LocationUpdated(location) =>
+        simpleHcd = Some(CommandServiceFactory.make(location.asInstanceOf[AkkaLocation])(ctx.system))
+      case LocationRemoved(_) =>
+        simpleHcd = None
+    }
+  }
+
+  private def sleepHCD(runId: Id, sleepTime: Long): Unit = {
+    simpleHcd match {
+      case Some(cs) =>
+        val s = Setup(componentInfo.prefix, CommandName("sleep"), None).add(sleepTimeKey.set(sleepTime))
+        cs.submit(s).foreach {
+          case started: Started =>
+            cs.queryFinal(started.runId)((sleepTime * 2).millis).foreach(sr => commandResponseManager.updateCommand(sr.withRunId(runId)))
+          case other =>
+            commandResponseManager.updateCommand(other.withRunId(runId))
+        }
+      case None =>
+        commandResponseManager.updateCommand(
+          Error(runId, s"A needed HCD is not available: ${hcdConnection.componentId} for ${componentInfo.prefix}")
+        )
+    }
+  }
+
 
   def onSetup(runId: Id, command: Setup): SubmitResponse = {
     command.commandName match {
@@ -71,7 +109,9 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
         Started(runId)
       case _ if command.contains(errorKey) => // do something based on parameters
         Error(runId, command(errorKey).head)
-
+      case CommandName("hcdSleep") =>
+        sleepHCD(runId, command(sleepTimeKey).head)
+        Started(runId)
       // todo sleep and error
       case _ =>
         Completed(runId)
@@ -90,6 +130,7 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
       s.commandName match {
         case CommandName("noop")                              => Accepted(runId)
         case CommandName("sleep") if s.contains(sleepTimeKey) => Accepted(runId)
+        case CommandName("hcdSleep") if s.contains(sleepTimeKey) => Accepted(runId)
         case _ if s.contains(sleepKey)                        => Accepted(runId)
         case x                                                => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"Setup command <$x> is not supported."))
       }
