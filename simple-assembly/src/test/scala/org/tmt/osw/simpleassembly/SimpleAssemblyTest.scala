@@ -29,8 +29,6 @@ class SimpleAssemblyTest extends ScalaTestFrameworkTestKit(AlarmServer, EventSer
 
 
   private val testPrefix = Prefix(Subsystem.CSW, "test")
-  private val hcdPrefix = Prefix(Subsystem.CSW, "SimpleHcd")
-  private val hcdConnection = AkkaConnection(ComponentId(hcdPrefix, ComponentType.HCD))
   private val assemblyPrefix = Prefix(Subsystem.CSW, "SimpleAssembly")
   private val assemblyConnection = AkkaConnection(ComponentId(assemblyPrefix, ComponentType.Assembly))
 
