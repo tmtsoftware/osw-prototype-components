@@ -6,9 +6,10 @@ import com.typesafe.config.ConfigFactory
 import csw.logging.client.appenders.{LogAppenderBuilder, StdOutAppender}
 import csw.logging.client.internal.JsonExtensions.RichJsObject
 import csw.logging.client.scaladsl.{LoggerFactory, LoggingSystemFactory}
-import csw.params.core.models.Id
+import csw.params.core.models.{ExposureIdWithObsId, ExposureNumber, Id, ObsId, StandaloneExposureId, TYPLevel}
 import csw.params.core.states.CurrentState
 import csw.prefix.models.Prefix
+import csw.prefix.models.Subsystem.CSW
 import org.mockito.MockitoSugar.mock
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -108,6 +109,8 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val resets = 2
       val reads = 4
       val ramps = 2
+      val obsId = ObsId("2021A-001-002")
+      val exposureId = ExposureIdWithObsId(Some(obsId), CSW, "DET1", TYPLevel("SCI1"), ExposureNumber(1))
       val filename = "test.fits"
       val expectedExposureTime = (resets+reads)*ramps*frameReadTimeMs
 
@@ -118,12 +121,14 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       probe.expectMessage(OK(testId))
       controller ! ConfigureExposure(testId2, probe.ref, ExposureParameters(resets, reads, ramps))
       probe.expectMessage(OK(testId2))
-      controller ! StartExposure(testId3, probe.ref, filename)
+      controller ! StartExposure(testId3, Some(obsId), exposureId, filename, probe.ref)
       probe.expectMessage(ExposureStarted(testId3))
       probe.expectNoMessage(expectedExposureTime.millis)
       val finishedMessage = probe.expectMessageType[ExposureFinished]
       finishedMessage.runId shouldBe testId3
-      finishedMessage.filename shouldBe filename
+      finishedMessage.exposureInfo.obsId shouldBe obsId
+      finishedMessage.exposureInfo.exposureId shouldBe exposureId
+      finishedMessage.exposureInfo.exposureFilename shouldBe filename
       testKit.stop(controller)
 
       val exposureTimerPeriod = config.getInt("exposureTimerPeriod")
@@ -148,6 +153,8 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val resets = 2
       val reads = 10
       val ramps = 4
+      val obsId = ObsId("2021A-001-002")
+      val exposureId = ExposureIdWithObsId(Some(obsId), CSW, "DET1", TYPLevel("SCI1"), ExposureNumber(1))
       val filename = "test.fits"
       val currentStateProbe = testKit.createTestProbe[CurrentState]()
       val controller = testKit.spawn(ControllerActor(logger, currentStateProbe.ref, prefix), "controller")
@@ -156,14 +163,16 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       probe.expectMessage(OK(testId))
       controller ! ConfigureExposure(testId2, probe.ref, ExposureParameters(resets, reads, ramps))
       probe.expectMessage(OK(testId2))
-      controller ! StartExposure(testId3, probe.ref, filename)
+      controller ! StartExposure(testId3, Some(obsId), exposureId, filename, probe.ref)
       probe.expectMessage(ExposureStarted(testId3))
       Thread.sleep(10 * frameReadTimeMs.toInt)
       controller ! AbortExposure(testId4, probe.ref)
       probe.expectMessage(OK(testId4))
       val finishedMessage = probe.expectMessageType[ExposureFinished](50.millis)
       finishedMessage.runId shouldBe testId4
-      finishedMessage.filename shouldBe filename
+      finishedMessage.exposureInfo.obsId shouldBe obsId
+      finishedMessage.exposureInfo.exposureId shouldBe exposureId
+      finishedMessage.exposureInfo.exposureFilename shouldBe filename
       probe.expectNoMessage(5.seconds)
       testKit.stop(controller)
 

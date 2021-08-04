@@ -2,6 +2,7 @@ package org.tmt.osw.simulatedinfrareddetectorhcd
 
 import akka.actor.typed.ActorRef
 import csw.logging.api.scaladsl.Logger
+import csw.params.core.models.{ExposureId, ObsId}
 import csw.params.core.states.CurrentState
 import csw.prefix.models.Prefix
 
@@ -12,12 +13,13 @@ case object Exposing      extends ControllerState
 case object Aborting      extends ControllerState
 
 case class ExposureParameters(resets: Int, reads: Int, ramps: Int)
+case class ExposureInfo(obsId: Option[ObsId], exposureId: ExposureId, exposureFilename: String)
 case class FitsData(data: Array[Array[Int]]) {
   val dimensions: (Int, Int) = (data.length, data(0).length)
 }
 case class ControllerStatus(readsDone: Int, rampsDone: Int) {
-  def incrementReadsDone(): ControllerStatus = ControllerStatus(readsDone+1, rampsDone)
-  def incrementRampsDone(): ControllerStatus = ControllerStatus(readsDone, rampsDone+1)
+  def incrementReadsDone(): ControllerStatus = ControllerStatus(readsDone + 1, rampsDone)
+  def incrementRampsDone(): ControllerStatus = ControllerStatus(readsDone, rampsDone + 1)
 }
 
 object ControllerStatus {
@@ -25,23 +27,32 @@ object ControllerStatus {
 }
 
 case class ControllerData(
-                           logger: Logger,
-                           currentStateForwarder: ActorRef[CurrentState],
-                           prefix: Prefix,
-                           state: ControllerState,
-                           status: ControllerStatus,
-                           exposureParameters: ExposureParameters,
-                           exposureStartTime: Long,
-                           exposureFilename: String
+    logger: Logger,
+    currentStateForwarder: ActorRef[CurrentState],
+    prefix: Prefix,
+    state: ControllerState,
+    status: ControllerStatus,
+    exposureParameters: ExposureParameters,
+    exposureStartTime: Long,
+    exposureInfo: ExposureInfo
 ) {
   def copy(
       newState: ControllerState = state,
       newStatus: ControllerStatus = status,
       newParams: ExposureParameters = exposureParameters,
       newExposureStartTime: Long = exposureStartTime,
-      newExposureFilename: String = exposureFilename
+      newExposureInfo: ExposureInfo = exposureInfo
   ): ControllerData = {
-    ControllerData(logger, currentStateForwarder, prefix, newState, newStatus, newParams, newExposureStartTime, newExposureFilename)
+    ControllerData(
+      logger,
+      currentStateForwarder,
+      prefix,
+      newState,
+      newStatus,
+      newParams,
+      newExposureStartTime,
+      newExposureInfo
+    )
   }
 }
 
@@ -53,8 +64,8 @@ object ControllerData {
       prefix,
       Uninitialized,
       ControllerStatus(),
-      ExposureParameters(1,2,1),
+      ExposureParameters(1, 2, 1),
       0L,
-      "none")
+      ExposureInfo(None, ExposureId("CSW-DET1-SCI1-001"), "none")
+    )
 }
-

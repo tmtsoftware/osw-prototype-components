@@ -13,13 +13,15 @@ object HcdConstants {
     val shutdown: CommandName          = CommandName("shutdown")
   }
   object keys {
-    val filename: Key[String]     = KeyType.StringKey.make("filename")
-    val resets: Key[Int] = KeyType.IntKey.make("resets")
-    val reads: Key[Int]      = KeyType.IntKey.make("reads")
-    val ramps: Key[Int]      = KeyType.IntKey.make("ramps")
+    val obsId: Key[String]      = KeyType.StringKey.make("obsId")
+    val exposureId: Key[String] = KeyType.StringKey.make("exposureId")
+    val filename: Key[String]   = KeyType.StringKey.make("filename")
+    val resets: Key[Int]        = KeyType.IntKey.make("resets")
+    val reads: Key[Int]         = KeyType.IntKey.make("reads")
+    val ramps: Key[Int]         = KeyType.IntKey.make("ramps")
 
-    val rampsDone: Key[Int]       = KeyType.IntKey.make("rampsDone")
-    val readsDone: Key[Int]       = KeyType.IntKey.make("readsDone")
+    val rampsDone: Key[Int] = KeyType.IntKey.make("rampsDone")
+    val readsDone: Key[Int] = KeyType.IntKey.make("readsDone")
   }
   val currentStateName: StateName = StateName("controllerState")
 }

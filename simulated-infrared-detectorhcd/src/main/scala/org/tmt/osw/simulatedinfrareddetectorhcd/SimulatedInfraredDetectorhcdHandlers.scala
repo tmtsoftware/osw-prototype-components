@@ -9,8 +9,9 @@ import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
 import csw.params.commands.{CommandIssue, ControlCommand, Observe, Setup}
-import csw.params.core.models.Id
+import csw.params.core.models.{ExposureId, Id, ObsId}
 import csw.params.core.states.CurrentState
+import csw.params.events.{Event, IRDetectorEvent, ObserveEvent}
 import csw.time.core.models.UTCTime
 import org.tmt.osw.simulatedinfrareddetectorhcd.ControllerMessages._
 import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.{commandName, keys}
@@ -35,28 +36,28 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
   implicit val scheduler: Scheduler         = ctx.system.scheduler
   private val log                           = loggerFactory.getLogger
   private val fitsWriteTimeout              = 10.seconds
+  private val myPrefix                      = componentInfo.prefix
 
-  private val fitsActor  = ctx.spawn(FitsActor(log), "fits")
+  private val fitsActor = ctx.spawn(FitsActor(log), "fits")
   private val currentStateForwarder = ctx.spawn[CurrentState](
     Behaviors.receiveMessage[CurrentState] { x =>
       currentStatePublisher.publish(x)
       Behaviors.same
-    }, "currentState"
+    },
+    "currentState"
   )
-  private val controller = ctx.spawn(ControllerActor(log, currentStateForwarder, componentInfo.prefix), "controller")
-
+  private val controller = ctx.spawn(ControllerActor(log, currentStateForwarder, myPrefix), "controller")
 
   private val controllerResponseActor = ctx.spawn[ControllerResponse](
     Behaviors.receiveMessagePartial[ControllerResponse] {
       case OK(runId) =>
         commandResponseManager.updateCommand(Completed(runId))
         Behaviors.same
-      case ExposureFinished(runId, data, filename) =>
-        val result = fitsActor.ask[FitsResponse](WriteData(filename, data, _))(fitsWriteTimeout, scheduler)
-        result.onComplete {
-          case Success(_: DataWritten) => commandResponseManager.updateCommand(Completed(runId))
-          case Failure(exception)      => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
-        }
+      case ExposureFinished(runId, data, exposureInfo) =>
+        handleExposureComplete(runId, data, exposureInfo, IRDetectorEvent.exposureEnd(myPrefix, exposureInfo.exposureId))
+        Behaviors.same
+      case ExposureAborted(runId, data, exposureInfo) =>
+        handleExposureComplete(runId, data, exposureInfo, IRDetectorEvent.exposureAborted(myPrefix, exposureInfo.exposureId))
         Behaviors.same
       case UnsupportedCommand(runId, _, message) =>
         commandResponseManager.updateCommand(Invalid(runId, CommandIssue.UnsupportedCommandIssue(message.toString)))
@@ -64,6 +65,24 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
     },
     "responseActor"
   )
+
+  private def handleExposureComplete(runId: Id, data: FitsData, exposureInfo: ExposureInfo, exposureEndEvent: ObserveEvent): Unit = {
+    // fire exposure end/aborted event
+    publish(exposureEndEvent)
+    // fire startDataWrite event
+    publish(IRDetectorEvent.dataWriteStart(myPrefix, exposureInfo.exposureId))
+    val result = fitsActor.ask[FitsResponse](WriteData(exposureInfo.exposureFilename, data, _))(fitsWriteTimeout, scheduler)
+    result.onComplete {
+      case Success(_: DataWritten) =>
+        // fire endDataWrite observe event
+        publish(IRDetectorEvent.dataWriteEnd(myPrefix, exposureInfo.exposureId))
+        commandResponseManager.updateCommand(Completed(runId))
+      case Failure(exception) => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
+    }
+  }
+
+  private def publish(event: Event) = eventService.defaultPublisher.publish(event)
+
   override def initialize(): Unit = {
     log.info("Initializing simulated.Infrared.DetectorHcd...")
   }
@@ -78,9 +97,9 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
         controller ! Initialize(runId, controllerResponseActor)
         Started(runId)
       case commandName.configureExposure =>
-        val resets              = command(keys.resets).head
-        val reads             = command(keys.reads).head
-        val ramps             = command(keys.ramps).head
+        val resets             = command(keys.resets).head
+        val reads              = command(keys.reads).head
+        val ramps              = command(keys.ramps).head
         val exposureParameters = ExposureParameters(resets, reads, ramps)
         controller ! ConfigureExposure(runId, controllerResponseActor, exposureParameters)
         Started(runId)
@@ -98,7 +117,14 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
     command.commandName match {
       case commandName.startExposure =>
         val filename = command(keys.filename).head
-        controller ! StartExposure(runId, controllerResponseActor, filename)
+        val obsId = command.get(keys.obsId).flatMap(_.head match {
+          case "none" => None
+          case x => Some(ObsId(x))
+        })
+        val exposureId = ExposureId(command(keys.exposureId).head)
+
+        publish(IRDetectorEvent.exposureStart(myPrefix, exposureId))
+        controller ! StartExposure(runId, obsId, exposureId, filename, controllerResponseActor)
         Started(runId)
       case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Setup command"))
     }

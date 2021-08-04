@@ -30,9 +30,10 @@ object ControllerActor {
   private lazy val frameReadTimeMs =
     detectorDimensions._1 * detectorDimensions._2 * config.getDouble("pixelClockTimeMs") / 32.0
 
-  def apply(logger: Logger, currentStatePublisher: ActorRef[CurrentState], prefix: Prefix): Behavior[ControllerMessage] = Behaviors.setup { _ =>
-    uninitialized(ControllerData(logger, currentStatePublisher, prefix))
-  }
+  def apply(logger: Logger, currentStatePublisher: ActorRef[CurrentState], prefix: Prefix): Behavior[ControllerMessage] =
+    Behaviors.setup { _ =>
+      uninitialized(ControllerData(logger, currentStatePublisher, prefix))
+    }
 
   private def uninitialized(data: ControllerData): Behavior[ControllerMessage] = {
     data.logger.info("In uninitialized state")
@@ -53,9 +54,9 @@ object ControllerActor {
       case ConfigureExposure(runId, replyTo, params) =>
         replyTo ! OK(runId)
         idle(data.copy(newParams = params))
-      case StartExposure(runId, replyTo, filename) =>
+      case StartExposure(runId, maybeObsId, exposureId, filename, replyTo) =>
         replyTo ! ExposureStarted(runId)
-        startExposure(runId, data.copy(newStatus = ControllerStatus(), newExposureFilename = filename), replyTo)
+        startExposure(runId, data.copy(newStatus = ControllerStatus(), newExposureInfo = ExposureInfo(maybeObsId, exposureId, filename)), replyTo)
       case ExposureInProgress(_, _) if data.state == Aborting => // this can occur on abort
         // ignore
         idle(data.copy(Idle))
@@ -83,7 +84,7 @@ object ControllerActor {
         replyTo ! ExposureFinished(
           runId,
           FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
-          data.exposureFilename
+          data.exposureInfo
         )
         idle(data.copy(Idle))
       case ExposureInProgress(runId, replyTo) =>
@@ -91,17 +92,17 @@ object ControllerActor {
         data.logger.debug(
           s"Exposure In Progress: elapsed time = $elapsedTime ms.  total time = ${calculateExposureDurationMillis(data.exposureParameters)}"
         )
-        val numReadTimes = math.floor(elapsedTime/frameReadTimeMs).toInt
-        val readsPerRamp = data.exposureParameters.resets+data.exposureParameters.reads
+        val numReadTimes = math.floor(elapsedTime / frameReadTimeMs).toInt
+        val readsPerRamp = data.exposureParameters.resets + data.exposureParameters.reads
 
         data.logger.debug(
           s"Exposure In Progress: numReadTimes = $numReadTimes, readsPerRamp = $readsPerRamp."
         )
 
-        val rampsDone = math.floor(numReadTimes/readsPerRamp).toInt
-        val readsDone = numReadTimes - rampsDone*readsPerRamp - data.exposureParameters.resets match {
+        val rampsDone = math.floor(numReadTimes / readsPerRamp).toInt
+        val readsDone = numReadTimes - rampsDone * readsPerRamp - data.exposureParameters.resets match {
           case x if x > 0 => x
-          case _ => 0
+          case _          => 0
         }
         data.logger.debug(
           s"Exposure In Progress: readsDone = $readsDone of ${data.exposureParameters.reads}.  rampsDone = $rampsDone of ${data.exposureParameters.ramps}."
@@ -114,7 +115,6 @@ object ControllerActor {
             (ExposureInProgress(runId, replyTo), exposureTimerPeriod)
           else
             (ExposureComplete(runId, replyTo), 0.seconds)
-
 
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(nextState, time)
@@ -131,10 +131,10 @@ object ControllerActor {
     Behaviors.receiveMessage {
       case ExposureComplete(runId, replyTo) =>
         data.logger.info("Exposure Complete")
-        replyTo ! ExposureFinished(
+        replyTo ! ExposureAborted(
           runId,
           FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
-          data.exposureFilename
+          data.exposureInfo
         )
         idle(data.copy(Aborting))
       case ExposureInProgress(runId, replyTo) =>
