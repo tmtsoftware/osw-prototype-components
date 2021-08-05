@@ -31,12 +31,12 @@ public class JSimulatedInfraredDetectorhcdHandlers extends JComponentHandlers {
     }
 
     @Override
-    public void jInitialize() {
+    public void initialize() {
         log.info("Initializing simulated.Infrared.DetectorHcd...");
     }
 
     @Override
-    public void jOnShutdown() {
+    public void onShutdown() {
 
     }
 

@@ -31,12 +31,12 @@ public class JTemplateHandlers extends JComponentHandlers {
     }
 
     @Override
-    public void jInitialize() {
+    public void initialize() {
         log.info("Initializing template...");
     }
 
     @Override
-    public void jOnShutdown() {
+    public void onShutdown() {
 
     }
 
