@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 import csw.logging.client.appenders.{LogAppenderBuilder, StdOutAppender}
 import csw.logging.client.internal.JsonExtensions.RichJsObject
 import csw.logging.client.scaladsl.{LoggerFactory, LoggingSystemFactory}
-import csw.params.core.models.{ExposureIdWithObsId, ExposureNumber, Id, ObsId, StandaloneExposureId, TYPLevel}
+import csw.params.core.models._
 import csw.params.core.states.CurrentState
 import csw.prefix.models.Prefix
 import csw.prefix.models.Subsystem.CSW
@@ -110,7 +110,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val reads = 4
       val ramps = 2
       val obsId = ObsId("2021A-001-002")
-      val exposureId = ExposureIdWithObsId(Some(obsId), CSW, "DET1", TYPLevel("SCI1"), ExposureNumber(1))
+      val exposureId = ExposureId(obsId, CSW, "DET1", TYPLevel("SCI1"), ExposureNumber(1))
       val filename = "test.fits"
       val expectedExposureTime = (resets+reads)*ramps*frameReadTimeMs
 
@@ -154,7 +154,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val reads = 10
       val ramps = 4
       val obsId = ObsId("2021A-001-002")
-      val exposureId = ExposureIdWithObsId(Some(obsId), CSW, "DET1", TYPLevel("SCI1"), ExposureNumber(1))
+      val exposureId = ExposureId(obsId, CSW, "DET1", TYPLevel("SCI1"), ExposureNumber(1))
       val filename = "test.fits"
       val currentStateProbe = testKit.createTestProbe[CurrentState]()
       val controller = testKit.spawn(ControllerActor(logger, currentStateProbe.ref, prefix), "controller")
