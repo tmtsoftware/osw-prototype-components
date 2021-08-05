@@ -16,12 +16,12 @@ object Libs {
 }
 
 object AkkaHttp {
-  val Version                = "10.2.1"
+  val Version                = "10.2.4"
   val `akka-http-spray-json` = "com.typesafe.akka" %% "akka-http-spray-json" % Version
 }
 
 object Akka {
-  val Version = "2.6.10"
+  val Version = "2.6.15"
   val `actor-testkit-typed` = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version
 }
 
