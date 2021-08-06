@@ -66,6 +66,6 @@ object ControllerData {
       ControllerStatus(),
       ExposureParameters(1, 2, 1),
       0L,
-      ExposureInfo(None, ExposureId("CSW-DET1-SCI1-001"), "none")
+      ExposureInfo(None, ExposureId("CSW-DET1-SCI1-0001"), "none")
     )
 }
