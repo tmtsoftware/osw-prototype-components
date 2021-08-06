@@ -37,14 +37,13 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
   private val loggerFactory = new LoggerFactory(prefix)
   private val logger        = loggerFactory.getLogger
 
-  private val currentStatePublisherMock = mock[ActorRef[CurrentState]]
-
   protected val logBuffer: mutable.Buffer[JsObject] = mutable.Buffer.empty[JsObject]
   protected val testAppender                        = new TestAppender(x => {
       //print(x.toString)
       logBuffer += Json.parse(x.toString).as[JsObject]
   })
 
+  private val currentStatePublisherMock = mock[ActorRef[CurrentState]]
 
   lazy private val config = ConfigFactory.load()
 
