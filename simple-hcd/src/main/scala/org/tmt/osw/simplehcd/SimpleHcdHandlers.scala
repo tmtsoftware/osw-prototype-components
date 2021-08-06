@@ -64,12 +64,17 @@ class SimpleHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswCont
       case CommandName("sleep") =>
         workerActor ! Sleep(runId, command(sleepTimeKey).head)
         Started(runId)
+      case _ =>
+        Completed(runId)
+
     }
   }
 
   def onObserve(runId: Id, command: Observe): SubmitResponse = {
     command.commandName match {
       case CommandName("noop") =>
+        Completed(runId)
+      case _ =>
         Completed(runId)
     }
   }

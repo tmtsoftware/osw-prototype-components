@@ -32,15 +32,15 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
 
   import cswCtx._
 
-  implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  implicit val ec: ExecutionContextExecutor      = ctx.executionContext
   implicit val actorSystem: ActorSystem[Nothing] = ctx.system
-  private val log = loggerFactory.getLogger
+  private val log                                = loggerFactory.getLogger
 
   sealed trait SleepCommand
 
   case class Sleep(runId: Id, timeInMillis: Long) extends SleepCommand
 
-  private val hcdConnection = AkkaConnection(ComponentId(Prefix("CSW.simulated.SimpleHcd"), HCD))
+  private val hcdConnection                     = AkkaConnection(ComponentId(Prefix("CSW.simulated.SimpleHcd"), HCD))
   private var simpleHcd: Option[CommandService] = None
 
   private val workerActor =
@@ -62,8 +62,8 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
     )
 
   private val sleepTimeKey = KeyType.LongKey.make("timeInMs")
-  private val sleepKey = KeyType.LongKey.make("sleepTimeInMs")
-  private val errorKey = KeyType.StringKey.make("error")
+  private val sleepKey     = KeyType.LongKey.make("sleepTimeInMs")
+  private val errorKey     = KeyType.StringKey.make("error")
 
   override def initialize(): Unit = {
     log.info("Initializing Simple Assembly...")
@@ -85,7 +85,8 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
         val s = Setup(componentInfo.prefix, CommandName("sleep"), None).add(sleepTimeKey.set(sleepTime))
         cs.submit(s).foreach {
           case started: Started =>
-            cs.queryFinal(started.runId)((sleepTime * 2).millis).foreach(sr => commandResponseManager.updateCommand(sr.withRunId(runId)))
+            cs.queryFinal(started.runId)((sleepTime * 2).millis)
+              .foreach(sr => commandResponseManager.updateCommand(sr.withRunId(runId)))
           case other =>
             commandResponseManager.updateCommand(other.withRunId(runId))
         }
@@ -95,7 +96,6 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
         )
     }
   }
-
 
   def onSetup(runId: Id, command: Setup): SubmitResponse = {
     command.commandName match {
@@ -122,17 +122,20 @@ class SimpleAssemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: Cs
     command.commandName match {
       case CommandName("noop") =>
         Completed(runId)
+      case _ =>
+        Completed(runId)
+
     }
   }
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = controlCommand match {
     case s: Setup =>
       s.commandName match {
-        case CommandName("noop")                              => Accepted(runId)
-        case CommandName("sleep") if s.contains(sleepTimeKey) => Accepted(runId)
+        case CommandName("noop")                                 => Accepted(runId)
+        case CommandName("sleep") if s.contains(sleepTimeKey)    => Accepted(runId)
         case CommandName("hcdSleep") if s.contains(sleepTimeKey) => Accepted(runId)
-        case _ if s.contains(sleepKey)                        => Accepted(runId)
-        case x                                                => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"Setup command <$x> is not supported."))
+        case _ if s.contains(sleepKey)                           => Accepted(runId)
+        case x                                                   => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"Setup command <$x> is not supported."))
       }
     case o: Observe =>
       o.commandName match {
