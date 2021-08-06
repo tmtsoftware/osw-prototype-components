@@ -66,7 +66,12 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
     "responseActor"
   )
 
-  private def handleExposureComplete(runId: Id, data: FitsData, exposureInfo: ExposureInfo, exposureEndEvent: ObserveEvent): Unit = {
+  private def handleExposureComplete(
+      runId: Id,
+      data: FitsData,
+      exposureInfo: ExposureInfo,
+      exposureEndEvent: ObserveEvent
+  ): Unit = {
     // fire exposure end/aborted event
     publish(exposureEndEvent)
     // fire startDataWrite event
@@ -117,10 +122,12 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
     command.commandName match {
       case commandName.startExposure =>
         val filename = command(keys.filename).head
-        val obsId = command.get(keys.obsId).flatMap(_.head match {
-          case "none" => None
-          case x => Some(ObsId(x))
-        })
+        val obsId = command
+          .get(keys.obsId)
+          .flatMap(_.head match {
+            case "none" => None
+            case x      => Some(ObsId(x))
+          })
         val exposureId = ExposureId(command(keys.exposureId).head)
 
         publish(IRDetectorEvent.exposureStart(myPrefix, exposureId))

@@ -56,7 +56,11 @@ object ControllerActor {
         idle(data.copy(newParams = params))
       case StartExposure(runId, maybeObsId, exposureId, filename, replyTo) =>
         replyTo ! ExposureStarted(runId)
-        startExposure(runId, data.copy(newStatus = ControllerStatus(), newExposureInfo = ExposureInfo(maybeObsId, exposureId, filename)), replyTo)
+        startExposure(
+          runId,
+          data.copy(newStatus = ControllerStatus(), newExposureInfo = ExposureInfo(maybeObsId, exposureId, filename)),
+          replyTo
+        )
       case ExposureInProgress(_, _) if data.state == Aborting => // this can occur on abort
         // ignore
         idle(data.copy(Idle))
