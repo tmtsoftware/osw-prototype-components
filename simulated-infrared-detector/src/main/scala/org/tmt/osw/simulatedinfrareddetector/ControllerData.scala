@@ -19,16 +19,7 @@ case class ControllerData(
     exposureParameters: ExposureParameters,
     exposureStartTime: Long,
     exposureFilename: String
-) {
-  def copy(
-      newState: ControllerState = state,
-      newParams: ExposureParameters = exposureParameters,
-      newExposureStartTime: Long = exposureStartTime,
-      newExposureFilename: String = exposureFilename
-  ): ControllerData = {
-    ControllerData(logger, newState, newParams, newExposureStartTime, newExposureFilename)
-  }
-}
+)
 
 object ControllerData {
   def apply(logger: Logger): ControllerData = ControllerData(logger, Uninitialized, ExposureParameters(10000, 1), 0L, "none")

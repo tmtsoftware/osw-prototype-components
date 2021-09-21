@@ -27,7 +27,7 @@ object ControllerActor {
     Behaviors.receiveMessage[ControllerMessage] {
       case Initialize(runId, replyTo) =>
         replyTo ! OK(runId)
-        idle(data.copy(Idle))
+        idle(data.copy(state = Idle))
       case x =>
         x.replyTo ! UnsupportedCommand(x.runId, "uninitialized", x)
         Behaviors.same
@@ -40,16 +40,16 @@ object ControllerActor {
     Behaviors.receiveMessage[ControllerMessage] {
       case ConfigureExposure(runId, replyTo, params) =>
         replyTo ! OK(runId)
-        idle(data.copy(newParams = params))
+        idle(data.copy(exposureParameters = params))
       case StartExposure(runId, replyTo, filename) =>
         replyTo ! ExposureStarted(runId)
-        startExposure(runId, data.copy(newExposureFilename = filename), replyTo)
+        startExposure(runId, data.copy(exposureFilename = filename), replyTo)
       case ExposureInProgress(_, _) if data.state == Aborting => // this can occur on abort
         // ignore
-        idle(data.copy(Idle))
+        idle(data.copy(state = Idle))
       case Shutdown(runId, replyTo) =>
         replyTo ! OK(runId)
-        uninitialized(data.copy(Uninitialized))
+        uninitialized(data.copy(state = Uninitialized))
       case x =>
         x.replyTo ! UnsupportedCommand(x.runId, "idle", x)
         Behaviors.same
@@ -64,7 +64,7 @@ object ControllerActor {
         replyTo ! OK(runId)
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(ExposureComplete(runId, replyTo), 0.seconds) // TODO should be runId from startExposure?
-          aborting(data.copy(Aborting))
+          aborting(data.copy(state = Aborting))
         }
       case ExposureComplete(runId, replyTo) =>
         data.logger.info("Exposure Complete")
@@ -73,7 +73,7 @@ object ControllerActor {
           FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
           data.exposureFilename
         )
-        idle(data.copy(Idle))
+        idle(data.copy(state = Idle))
       case ExposureInProgress(runId, replyTo) =>
         val elapsedTime = System.currentTimeMillis() - data.exposureStartTime
         data.logger.debug(
@@ -87,7 +87,7 @@ object ControllerActor {
 
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(nextState, time)
-          exposing(data.copy(Exposing))
+          exposing(data.copy(state = Exposing))
         }
       case x =>
         x.replyTo ! UnsupportedCommand(x.runId, "exposing", x)
@@ -105,11 +105,11 @@ object ControllerActor {
           FitsData(generateFakeImageData(detectorDimensions._1, detectorDimensions._2)),
           data.exposureFilename
         )
-        idle(data.copy(Aborting))
+        idle(data.copy(state = Aborting))
       case ExposureInProgress(runId, replyTo) =>
         Behaviors.withTimers[ControllerMessage] { timers =>
           timers.startSingleTimer(ExposureComplete(runId, replyTo), 0.seconds)
-          aborting(data.copy(Aborting))
+          aborting(data.copy(state = Aborting))
         }
       case x =>
         x.replyTo ! UnsupportedCommand(x.runId, "aborting", x)
@@ -127,7 +127,7 @@ object ControllerActor {
     )
     Behaviors.withTimers[ControllerMessage] { timers =>
       timers.startSingleTimer(ExposureInProgress(runId, replyTo), exposureTimerPeriod)
-      exposing(data.copy(Exposing, newExposureStartTime = System.currentTimeMillis()))
+      exposing(data.copy(state = Exposing, exposureStartTime = System.currentTimeMillis()))
     }
   }
 
