@@ -35,26 +35,7 @@ case class ControllerData(
     exposureParameters: ExposureParameters,
     exposureStartTime: Long,
     exposureInfo: ExposureInfo
-) {
-  def copy(
-      newState: ControllerState = state,
-      newStatus: ControllerStatus = status,
-      newParams: ExposureParameters = exposureParameters,
-      newExposureStartTime: Long = exposureStartTime,
-      newExposureInfo: ExposureInfo = exposureInfo
-  ): ControllerData = {
-    ControllerData(
-      logger,
-      currentStateForwarder,
-      prefix,
-      newState,
-      newStatus,
-      newParams,
-      newExposureStartTime,
-      newExposureInfo
-    )
-  }
-}
+)
 
 object ControllerData {
   def apply(logger: Logger, currentStateForwarder: ActorRef[CurrentState], prefix: Prefix): ControllerData =
