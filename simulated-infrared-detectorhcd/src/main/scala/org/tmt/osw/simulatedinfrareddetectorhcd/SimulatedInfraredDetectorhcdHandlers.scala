@@ -75,12 +75,12 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
     // fire exposure end/aborted event
     publish(exposureEndEvent)
     // fire startDataWrite event
-    publish(IRDetectorEvent.dataWriteStart(myPrefix, exposureInfo.exposureId))
+    publish(IRDetectorEvent.dataWriteStart(myPrefix, exposureInfo.exposureId, exposureInfo.exposureFilename))
     val result = fitsActor.ask[FitsResponse](WriteData(exposureInfo.exposureFilename, data, _))(fitsWriteTimeout, scheduler)
     result.onComplete {
       case Success(_: DataWritten) =>
         // fire endDataWrite observe event
-        publish(IRDetectorEvent.dataWriteEnd(myPrefix, exposureInfo.exposureId))
+        publish(IRDetectorEvent.dataWriteEnd(myPrefix, exposureInfo.exposureId, exposureInfo.exposureFilename))
         commandResponseManager.updateCommand(Completed(runId))
       case Failure(exception) => commandResponseManager.updateCommand(Error(runId, exception.getMessage))
     }

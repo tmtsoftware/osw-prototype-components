@@ -24,9 +24,9 @@ import scala.concurrent.duration._
 
 class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyWordSpecLike {
 
-  import frameworkTestKit.frameworkWiring._
+  import frameworkTestKit._
   //actorRuntime.startLogging("hcdTest")
-  private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
+  //private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
   LoggingSystemFactory.forTestingOnly()
 
   private val testPrefix   = Prefix(Subsystem.CSW, "test")
@@ -63,7 +63,7 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
     val detector = "DET1"
     val typLevel = TYPLevel("SCI1")
     val exposureNumber = ExposureNumber("0001")
-    val exposureId = ExposureId(obsId, subsystem, detector, typLevel, exposureNumber)
+    val exposureId = ExposureId(subsystem, detector, typLevel, exposureNumber)
 
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
     val hcd     = CommandServiceFactory.make(akkaLocation)
@@ -84,11 +84,11 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
       .add(keys.exposureId.set(exposureId.toString))
 
 
-    val subscriber = eventServiceFactory.make(locationService).defaultSubscriber
+    val subscriber = eventService.defaultSubscriber
     val startExposureEvent = IRDetectorEvent.exposureStart(hcdPrefix, exposureId)
     val endExposureEvent = IRDetectorEvent.exposureEnd(hcdPrefix, exposureId)
-    val dataWriteStartEvent = IRDetectorEvent.dataWriteStart(hcdPrefix, exposureId)
-    val dataWriteEndEvent = IRDetectorEvent.dataWriteEnd(hcdPrefix, exposureId)
+    val dataWriteStartEvent = IRDetectorEvent.dataWriteStart(hcdPrefix, exposureId, filename)
+    val dataWriteEndEvent = IRDetectorEvent.dataWriteEnd(hcdPrefix, exposureId, filename)
     val subscriptionStartEventList = mutable.ListBuffer[Event]()
     val subscriptionEndEventList = mutable.ListBuffer[Event]()
     val startEventSubscription = subscriber.subscribeCallback(Set(startExposureEvent.eventKey), { ev => subscriptionStartEventList.append(ev) })
