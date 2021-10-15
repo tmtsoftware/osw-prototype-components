@@ -5,16 +5,16 @@ import csw.params.core.generics.{Key, KeyType}
 
 object AssemblyConstants {
   object commandName {
-    val initialize: CommandName        = CommandName("initialize")
-    val configureExposure: CommandName = CommandName("configureExposure")
-    val startExposure: CommandName     = CommandName("startExposure")
-    val abortExposure: CommandName     = CommandName("abortExposure")
-    val shutdown: CommandName          = CommandName("shutdown")
+    val initialize: CommandName        = CommandName("INIT")
+    val configureExposure: CommandName = CommandName("LOAD_CONFIGURATION")
+    val startExposure: CommandName     = CommandName("START_EXPOSURE")
+    val abortExposure: CommandName     = CommandName("ABORT_EXPOSURE")
+    val shutdown: CommandName          = CommandName("SHUTDOWN")
   }
   object keys {
     val filename: Key[String]     = KeyType.StringKey.make("filename")
-    val integrationTime: Key[Int] = KeyType.IntKey.make("integrationTime")
-    val coaddition: Key[Int]      = KeyType.IntKey.make("coadditions")
+    val integrationTime: Key[Int] = KeyType.IntKey.make("rampIntegrationTime")
+    val coaddition: Key[Int]      = KeyType.IntKey.make("ramps")
   }
 
 }
