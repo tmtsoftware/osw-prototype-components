@@ -29,11 +29,11 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
   //private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
   LoggingSystemFactory.forTestingOnly()
 
-  private val testPrefix   = Prefix(Subsystem.CSW, "test")
-  private val hcdPrefix    = Prefix(Subsystem.CSW, "simulated.Infrared.DetectorHcd")
-  private val connection   = AkkaConnection(ComponentId(hcdPrefix, ComponentType.HCD))
+  private val testPrefix = Prefix(Subsystem.CSW, "test")
+  private val hcdPrefix  = Prefix(Subsystem.CSW, "simulated.Infrared.DetectorHcd")
+  private val connection = AkkaConnection(ComponentId(hcdPrefix, ComponentType.HCD))
 
-  private implicit val timeout: Timeout                                = 12.seconds
+  private implicit val timeout: Timeout = 12.seconds
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -57,16 +57,16 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
   }
 
   "return ExposureFinished on initialize, configureExposure, and startExposure commands" in {
-    val filename     = "hcdTest.fits"
-    val obsId = ObsId("2020A-001-123")
-    val subsystem = CSW
-    val detector = "DET1"
-    val typLevel = TYPLevel("SCI1")
+    val filename       = "hcdTest.fits"
+    val obsId          = ObsId("2020A-001-123")
+    val subsystem      = CSW
+    val detector       = "DET1"
+    val typLevel       = TYPLevel("SCI1")
     val exposureNumber = ExposureNumber("0001")
-    val exposureId = ExposureId(subsystem, detector, typLevel, exposureNumber)
+    val exposureId     = ExposureId(subsystem, detector, typLevel, exposureNumber)
 
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
-    val hcd     = CommandServiceFactory.make(akkaLocation)
+    val hcd          = CommandServiceFactory.make(akkaLocation)
 
     val initializeCommand = Setup(testPrefix, commandName.initialize, None)
 
@@ -83,19 +83,23 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
       .add(keys.filename.set(filename))
       .add(keys.exposureId.set(exposureId.toString))
 
-
-    val subscriber = eventService.defaultSubscriber
-    val startExposureEvent = IRDetectorEvent.exposureStart(hcdPrefix, exposureId)
-    val endExposureEvent = IRDetectorEvent.exposureEnd(hcdPrefix, exposureId)
-    val dataWriteStartEvent = IRDetectorEvent.dataWriteStart(hcdPrefix, exposureId, filename)
-    val dataWriteEndEvent = IRDetectorEvent.dataWriteEnd(hcdPrefix, exposureId, filename)
+    val subscriber                 = eventService.defaultSubscriber
+    val startExposureEvent         = IRDetectorEvent.exposureStart(hcdPrefix, exposureId)
+    val endExposureEvent           = IRDetectorEvent.exposureEnd(hcdPrefix, exposureId)
+    val dataWriteStartEvent        = IRDetectorEvent.dataWriteStart(hcdPrefix, exposureId, filename)
+    val dataWriteEndEvent          = IRDetectorEvent.dataWriteEnd(hcdPrefix, exposureId, filename)
     val subscriptionStartEventList = mutable.ListBuffer[Event]()
-    val subscriptionEndEventList = mutable.ListBuffer[Event]()
-    val startEventSubscription = subscriber.subscribeCallback(Set(startExposureEvent.eventKey), { ev => subscriptionStartEventList.append(ev) })
-    val endEventSubscription = subscriber.subscribeCallback(Set(endExposureEvent.eventKey, dataWriteStartEvent.eventKey, dataWriteEndEvent.eventKey),
-      { ev => subscriptionEndEventList.append(ev) })
+    val subscriptionEndEventList   = mutable.ListBuffer[Event]()
+    val startEventSubscription = subscriber.subscribeCallback(Set(startExposureEvent.eventKey), { ev =>
+      subscriptionStartEventList.append(ev)
+    })
+    val endEventSubscription =
+      subscriber.subscribeCallback(Set(endExposureEvent.eventKey, dataWriteStartEvent.eventKey, dataWriteEndEvent.eventKey), {
+        ev =>
+          subscriptionEndEventList.append(ev)
+      })
 
-    val submitResult = Await.result(hcd.submit(startExposureCommand) , 2.seconds)
+    val submitResult = Await.result(hcd.submit(startExposureCommand), 2.seconds)
     submitResult shouldBe a[CommandResponse.Started]
 
     Await.result(hcd.queryFinal(submitResult.runId), 10.seconds) shouldBe a[Completed]

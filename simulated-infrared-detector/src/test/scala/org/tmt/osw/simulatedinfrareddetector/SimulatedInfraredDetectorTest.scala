@@ -27,7 +27,7 @@ class SimulatedInfraredDetectorTest
     with BeforeAndAfterEach {
 
   import AssemblyConstants._
-  import frameworkTestKit.frameworkWiring._
+  import frameworkTestKit._
 
   private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
   private implicit val ec: ExecutionContext                            = actorSystem.executionContext

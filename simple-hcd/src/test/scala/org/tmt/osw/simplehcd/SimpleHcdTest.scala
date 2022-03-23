@@ -21,7 +21,7 @@ import scala.concurrent.{Await, ExecutionContext}
 
 class SimpleHcdTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyWordSpecLike with BeforeAndAfterEach {
 
-  import frameworkTestKit.frameworkWiring._
+  import frameworkTestKit._
 
   private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
   private implicit val ec: ExecutionContext                            = actorSystem.executionContext
