@@ -1,19 +1,21 @@
 package org.tmt.osw.simulatedinfrareddetectorhcd
 
-import akka.actor.typed.{ActorSystem, SpawnProtocol}
 import akka.util.Timeout
 import csw.command.client.CommandServiceFactory
+import csw.command.client.extensions.AkkaLocationExt.RichAkkaLocation
+import csw.command.client.messages.SupervisorContainerCommonMessages.Restart
 import csw.location.api.models.Connection.AkkaConnection
 import csw.location.api.models.{ComponentId, ComponentType}
 import csw.logging.client.scaladsl.LoggingSystemFactory
 import csw.params.commands.CommandResponse.Completed
 import csw.params.commands.{CommandResponse, Observe, Setup}
-import csw.params.core.models.{ExposureId, ExposureNumber, ObsId, TYPLevel}
+import csw.params.core.models.{ExposureId, ExposureNumber, TYPLevel}
 import csw.params.events.{Event, IRDetectorEvent, ObserveEvent, SystemEvent}
 import csw.prefix.models.Subsystem.CSW
 import csw.prefix.models.{Prefix, Subsystem}
 import csw.testkit.scaladsl.CSWService.{AlarmServer, EventServer}
 import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.tmt.osw.simulatedinfrareddetectorhcd.HcdConstants.{commandName, keys}
 
@@ -22,11 +24,14 @@ import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyWordSpecLike {
+class SimulatedInfraredDetectorhcdTest
+    extends ScalaTestFrameworkTestKit(AlarmServer, EventServer)
+    with AnyWordSpecLike
+    with BeforeAndAfterEach {
 
   import frameworkTestKit._
   //actorRuntime.startLogging("hcdTest")
-  //private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
+
   LoggingSystemFactory.forTestingOnly()
 
   private val testPrefix = Prefix(Subsystem.CSW, "test")
@@ -39,6 +44,13 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
     super.beforeAll()
     // uncomment if you want one HCD run for all tests
     spawnStandalone(com.typesafe.config.ConfigFactory.load("SimulatedInfraredDetectorhcdStandalone.conf"))
+  }
+
+  override def afterEach(): Unit = {
+    val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
+    val supervisor   = akkaLocation.componentRef
+    supervisor ! Restart
+    Thread.sleep(1000)
   }
 
   "HCD should be locatable using Location Service" in {
@@ -58,7 +70,6 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
 
   "return ExposureFinished on initialize, configureExposure, and startExposure commands" in {
     val filename       = "hcdTest.fits"
-    val obsId          = ObsId("2020A-001-123")
     val subsystem      = CSW
     val detector       = "DET1"
     val typLevel       = TYPLevel("SCI1")
@@ -124,7 +135,7 @@ class SimulatedInfraredDetectorhcdTest extends ScalaTestFrameworkTestKit(AlarmSe
     receivedStartEvent1.asInstanceOf[ObserveEvent](keys.exposureId).head shouldBe exposureId.toString
     startEventSubscription.unsubscribe()
 
-    subscriptionEndEventList.foreach(println)
+    //subscriptionEndEventList.foreach(println)
     subscriptionEndEventList.size shouldBe 6
     val receivedEvent1 = subscriptionEndEventList.head
     val receivedEvent2 = subscriptionEndEventList(1)
