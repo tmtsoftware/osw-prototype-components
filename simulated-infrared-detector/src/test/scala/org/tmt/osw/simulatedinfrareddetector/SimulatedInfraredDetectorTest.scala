@@ -1,8 +1,5 @@
 package org.tmt.osw.simulatedinfrareddetector
 
-import java.io.File
-
-import akka.actor.typed.{ActorSystem, SpawnProtocol}
 import akka.util.Timeout
 import csw.command.client.CommandServiceFactory
 import csw.command.client.extensions.AkkaLocationExt.RichAkkaLocation
@@ -18,8 +15,9 @@ import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.io.File
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 
 class SimulatedInfraredDetectorTest
     extends ScalaTestFrameworkTestKit(AlarmServer, EventServer)
@@ -29,9 +27,7 @@ class SimulatedInfraredDetectorTest
   import AssemblyConstants._
   import frameworkTestKit._
 
-  private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
-  private implicit val ec: ExecutionContext                            = actorSystem.executionContext
-  private implicit val timeout: Timeout                                = 12.seconds
+  private implicit val timeout: Timeout = 12.seconds
 
   private val testPrefix         = Prefix(Subsystem.CSW, "test")
   private val assemblyPrefix     = Prefix(Subsystem.CSW, "simulated.Infrared.Detector")
