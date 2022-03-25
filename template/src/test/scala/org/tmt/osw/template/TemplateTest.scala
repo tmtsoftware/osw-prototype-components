@@ -21,7 +21,7 @@ class TemplateTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) w
   }
 
   test("Assembly should be locatable using Location Service") {
-    val connection = AkkaConnection(ComponentId(Prefix("OSW.template"), ComponentType.Assembly))
+    val connection = AkkaConnection(ComponentId(Prefix("CSW.template"), ComponentType.Assembly))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     akkaLocation.connection shouldBe connection

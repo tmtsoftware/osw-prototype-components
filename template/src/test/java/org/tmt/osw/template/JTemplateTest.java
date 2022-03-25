@@ -33,7 +33,7 @@ public class JTemplateTest extends JUnitSuite {
 
     @Test
     public void testAssemblyShouldBeLocatableUsingLocationService() throws ExecutionException, InterruptedException {
-        Connection.AkkaConnection connection = new Connection.AkkaConnection(new ComponentId(Prefix.apply("OSW.template"), JComponentType.Assembly));
+        Connection.AkkaConnection connection = new Connection.AkkaConnection(new ComponentId(Prefix.apply("CSW.template"), JComponentType.Assembly));
         ILocationService locationService = testKit.jLocationService();
         Optional<AkkaLocation> maybeLocation = locationService.resolve(connection, Duration.ofSeconds(10)).get();
 

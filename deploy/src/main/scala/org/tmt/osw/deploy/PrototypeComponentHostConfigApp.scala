@@ -5,6 +5,6 @@ import csw.prefix.models.Subsystem
 
 object PrototypeComponentHostConfigApp extends App {
 
-  HostConfig.start("prototype-component-host-config-app", Subsystem.withNameInsensitive("OSW"), args)
+  HostConfig.start("prototype-component-host-config-app", Subsystem.withNameInsensitive("CSW"), args)
 
 }

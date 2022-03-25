@@ -32,7 +32,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
   private lazy val hostName      = InetAddress.getLocalHost.getHostName
   private lazy val loggingSystem = LoggingSystemFactory.start("logging", "2.1", hostName, actorSystem)
 
-  private val prefix        = Prefix("ESW.SimulatedInfraredDetectorHcd")
+  private val prefix        = Prefix("CSW.SimulatedInfraredDetectorHcd")
   private val loggerFactory = new LoggerFactory(prefix)
   private val logger        = loggerFactory.getLogger
 
@@ -65,6 +65,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
 
   override def afterAll(): Unit = {
     if (dumpLogs) {
+      println("logs:")
       Thread.sleep(1000)
       logBuffer.foreach(println)
     }
@@ -123,7 +124,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       probe.expectNoMessage(expectedExposureTime.millis)
       val finishedMessage = probe.expectMessageType[ExposureFinished]
       finishedMessage.runId shouldBe testId3
-      finishedMessage.exposureInfo.obsId shouldBe obsId
+      finishedMessage.exposureInfo.obsId shouldBe Some(obsId)
       finishedMessage.exposureInfo.exposureId shouldBe exposureId
       finishedMessage.exposureInfo.exposureFilename shouldBe filename
       testKit.stop(controller)
@@ -165,9 +166,9 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       Thread.sleep(10 * frameReadTimeMs.toInt)
       controller ! AbortExposure(testId4, probe.ref)
       probe.expectMessage(OK(testId4))
-      val finishedMessage = probe.expectMessageType[ExposureFinished](50.millis)
+      val finishedMessage = probe.expectMessageType[ExposureAborted](50.millis)
       finishedMessage.runId shouldBe testId4
-      finishedMessage.exposureInfo.obsId shouldBe obsId
+      finishedMessage.exposureInfo.obsId shouldBe Some(obsId)
       finishedMessage.exposureInfo.exposureId shouldBe exposureId
       finishedMessage.exposureInfo.exposureFilename shouldBe filename
       probe.expectNoMessage(5.seconds)
