@@ -1,6 +1,5 @@
 package org.tmt.osw.simple
 
-import akka.actor.typed.{ActorSystem, SpawnProtocol}
 import akka.util.Timeout
 import csw.command.client.CommandServiceFactory
 import csw.command.client.extensions.AkkaLocationExt.RichAkkaLocation
@@ -16,15 +15,13 @@ import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 
 class SimpleAssemblyTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyWordSpecLike with BeforeAndAfterEach {
 
   import frameworkTestKit._
 
-  private implicit val actorSystem: ActorSystem[SpawnProtocol.Command] = frameworkTestKit.actorSystem
-  private implicit val ec: ExecutionContext                            = actorSystem.executionContext
   private implicit val timeout: Timeout                                = 12.seconds
 
 
