@@ -133,7 +133,7 @@ class SimulatedInfraredDetectorhcdHandlers(ctx: ActorContext[TopLevelActorMessag
         publish(IRDetectorEvent.exposureStart(myPrefix, exposureId))
         controller ! StartExposure(runId, obsId, exposureId, filename, controllerResponseActor)
         Started(runId)
-      case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Setup command"))
+      case x => Invalid(runId, CommandIssue.UnsupportedCommandIssue(s"${x.name} is not a supported Observe command"))
     }
   }
 

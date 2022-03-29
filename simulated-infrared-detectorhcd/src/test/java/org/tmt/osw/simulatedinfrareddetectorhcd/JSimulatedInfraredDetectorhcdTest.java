@@ -33,7 +33,7 @@ public class JSimulatedInfraredDetectorhcdTest extends JUnitSuite {
 
     @Test
     public void testHcdShouldBeLocatableUsingLocationService() throws ExecutionException, InterruptedException {
-        Connection.AkkaConnection connection = new Connection.AkkaConnection(new ComponentId(Prefix.apply("OSW.simulated.Infrared.DetectorHcd"), JComponentType.HCD));
+        Connection.AkkaConnection connection = new Connection.AkkaConnection(new ComponentId(Prefix.apply("CSW.simulated.Infrared.DetectorHcd"), JComponentType.HCD));
         ILocationService locationService = testKit.jLocationService();
         Optional<AkkaLocation> maybeLocation = locationService.resolve(connection, Duration.ofSeconds(10)).get();
 

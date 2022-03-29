@@ -12,7 +12,7 @@ import org.tmt.osw.simulatedinfrareddetector.ControllerMessages.{DataWritten, Fi
 import scala.concurrent.duration._
 
 class FitsActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike with BeforeAndAfterEach {
-  private val loggerFactory = new LoggerFactory(Prefix("ESW.SimulatedInfraredDetector"))
+  private val loggerFactory = new LoggerFactory(Prefix("CSW.SimulatedInfraredDetector"))
   private val logger        = loggerFactory.getLogger
 
   "FitsActor" must {

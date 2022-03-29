@@ -30,7 +30,7 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
   private lazy val hostName      = InetAddress.getLocalHost.getHostName
   private lazy val loggingSystem = LoggingSystemFactory.start("logging", "2.1", hostName, actorSystem)
 
-  private val loggerFactory = new LoggerFactory(Prefix("ESW.SimulatedInfraredDetector"))
+  private val loggerFactory = new LoggerFactory(Prefix("CSW.SimulatedInfraredDetector"))
   private val logger        = loggerFactory.getLogger
 
   protected val logBuffer: mutable.Buffer[JsObject] = mutable.Buffer.empty[JsObject]
@@ -111,14 +111,14 @@ class ControllerActorTest extends ScalaTestWithActorTestKit with AnyWordSpecLike
       val exposureTimerPeriod      = config.getInt("exposureTimerPeriod")
       val expectedExposureMessages = expectedExposureTime / exposureTimerPeriod
 
-      val expectedNumLogMessages = 5 + expectedExposureMessages
+      val expectedNumLogMessages = 4 + expectedExposureMessages
       eventually(logBuffer.size shouldBe expectedNumLogMessages)
       logBuffer.head.getString("message") shouldBe "In uninitialized state"
       logBuffer(1).getString("message") shouldBe "In idle state"
       logBuffer(2).getString("message") shouldBe "In idle state"
       logBuffer(3).getString("message").contains("Starting exposure") shouldBe true
-      logBuffer(expectedExposureMessages + 3).getString("message") shouldBe "Exposure Complete"
-      logBuffer(expectedExposureMessages + 4).getString("message") shouldBe "In idle state"
+      logBuffer(expectedExposureMessages + 2).getString("message") shouldBe "Exposure Complete"
+      logBuffer(expectedExposureMessages + 3).getString("message") shouldBe "In idle state"
 
     }
 
